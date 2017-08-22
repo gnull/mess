@@ -1,7 +1,9 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Data.VkMess ( Message(..)
+                   , Snapshot(..)
                    , addrEq
                    , whateverId
                    ) where
@@ -12,6 +14,9 @@ import Data.Text (Text, unpack)
 import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
 import Foreign.C.Types (CTime(CTime))
 
+import Data.Binary
+import GHC.Generics (Generic)
+
 type MessageId    = Int
 type UserId       = Int
 type ChatId       = Int
@@ -20,7 +25,7 @@ type ChatId       = Int
 data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
-                 | MessageFromDialog UserId deriving (Ord, Eq)
+                 | MessageFromDialog UserId deriving (Ord, Eq, Generic)
 
 instance Show MessageAddr where
   show (MessageToChat x)     = "[c] -> " ++ show x
@@ -47,7 +52,7 @@ data Message = Message {
                , mDate :: UnixTime
                , mRead :: Bool
                , mAddr :: MessageAddr
-               }
+               } deriving (Generic)
 
 instance Show Message where
   show (Message {..}) = Data.ByteString.Char8.unpack (formatUnixTimeGMT webDateFormat mDate)
@@ -73,3 +78,9 @@ instance FromJSON Message where
                     then MessageToDialog   <$> uid
                     else MessageFromDialog <$> uid
     return $ Message {..}
+
+data Snapshot = Snapshot [Message] deriving (Generic)
+
+instance Binary MessageAddr
+instance Binary Message
+instance Binary Snapshot

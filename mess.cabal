@@ -24,3 +24,4 @@ executable mess
                      , unix-time >= 0.3.7
                      , aeson >= 1.1
                      , bytestring >= 0.10
+                     , binary >= 0.8
