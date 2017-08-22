@@ -26,3 +26,16 @@ executable mess-fetch
                      , bytestring >= 0.10
                      , binary >= 0.8
                      , optparse-applicative >= 0.13
+
+executable mess-view
+  hs-source-dirs:      src
+  main-is:             View.hs
+  default-language:    Haskell2010
+  other-modules:       Data.VkMess
+  build-depends:       base >= 4.7 && < 5
+                     , text >= 1.2.2
+                     , unix-time >= 0.3.7
+                     , aeson >= 1.1
+                     , bytestring >= 0.10
+                     , binary >= 0.8
+                     , optparse-applicative >= 0.13
