@@ -5,10 +5,11 @@ module Main where
 import Control.Applicative (liftA2)
 import Control.Arrow ((***))
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
-import Data.List (groupBy, sortOn)
+import qualified Data.ByteString.Char8 (unpack)
+import Data.List (groupBy, sortOn, intersperse)
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text.IO
-import Data.UnixTime (fromEpochTime, UnixTime)
+import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
 import Foreign.C.Types (CTime(CTime))
 
 import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..))
@@ -50,7 +51,8 @@ data Message = Message {
                }
 
 instance Show Message where
-  show (Message {..}) = show mAddr ++ ": " ++ unpack mBody
+  show (Message {..}) = Data.ByteString.Char8.unpack (formatUnixTimeGMT webDateFormat mDate)
+                     ++ ": " ++ show mAddr ++ ": " ++ unpack mBody
 
 instance FromJSON UnixTime where
   parseJSON = fmap (fromEpochTime . CTime) . parseJSON
@@ -100,6 +102,6 @@ main = do
   case x of
     (Left e) ->  putStrLn $ show e
     (Right a) -> putStrLn
-      $ unlines $ map show $ concat
-      $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr))
-      $ sortOn mAddr a
+      $ unlines $ intersperse "---------" $ map unlines
+      $ map (map show) $ map (sortOn mDate)
+      $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr)) a

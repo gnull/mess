@@ -22,3 +22,4 @@ executable mess
                      , text >= 1.2.2
                      , unix-time >= 0.3.7
                      , aeson >= 1.1
+                     , bytestring >= 0.10
