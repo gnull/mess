@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Main where
 
 import Data.Aeson (FromJSON(..), Value(..), (.:), withObject)
@@ -13,23 +14,24 @@ import Web.VKHS.API.Types (Sized(..))
 type MessageId   = Int
 
 data Message = Message {
-                 id   :: MessageId
-               , body :: Text
-               , date :: UnixTime
-               , read :: Bool
-               , out  :: Bool
+                 mId   :: MessageId
+               , mBody :: Text
+               , mDate :: UnixTime
+               , mRead :: Bool
+               , mOut  :: Bool
                } deriving (Show)
 
 instance FromJSON UnixTime where
   parseJSON = fmap (fromEpochTime . CTime) . parseJSON
 
 instance FromJSON Message where
-  parseJSON = withObject "message" $ \v ->
-      Message <$> v .: "id"
-              <*> v .: "body"
-              <*> v .: "date"
-              <*> ((/= (0 :: Int)) <$> v .: "read_state")
-              <*> ((/= (0 :: Int)) <$> v .: "out")
+  parseJSON = withObject "message" $ \v -> do
+    mId <- v .: "id"
+    mBody <- v .: "body"
+    mDate <- v .: "date"
+    mRead <- (/= (0 :: Int)) <$> v .: "read_state"
+    mOut <- (/= (0 :: Int)) <$> v .: "out"
+    return $ Message {..}
 
 getMessagesR :: (MonadAPI m x s) => Bool -> MessageId -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple
