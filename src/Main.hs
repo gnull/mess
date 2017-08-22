@@ -2,7 +2,9 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
+import Control.Arrow ((***))
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
+import Data.List (groupBy)
 import Data.Text (Text, pack)
 import qualified Data.Text.IO
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -20,6 +22,17 @@ data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
                  | MessageFromDialog UserId deriving (Show)
+
+addrEq :: MessageAddr -> MessageAddr -> Bool
+addrEq a b = isChat a == isChat b && whateverId a == whateverId b
+  where
+    isChat (MessageToChat _)     = True
+    isChat (MessageFromChat _ _) = True
+    isChat _ = False
+    whateverId (MessageToChat a)     = a
+    whateverId (MessageFromChat _ a) = a
+    whateverId (MessageToDialog a)   = a
+    whateverId (MessageFromDialog a) = a
 
 data Message = Message {
                  mId   :: MessageId
@@ -60,7 +73,9 @@ getMessagesR out from count = apiSimple
 
 main :: IO ()
 main = do
-  x <- runVK defaultOptions $ getMessagesR True 0 4
+  x <- runVK defaultOptions $ getMessagesR True 0 20
   case x of
     (Left e) ->  putStrLn $ show e
-    (Right a) -> putStrLn $ show (a :: Sized [Message])
+    (Right a) -> putStrLn $ show
+      $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr))
+      $ m_items (a :: Sized [Message])
