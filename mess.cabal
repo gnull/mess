@@ -17,6 +17,7 @@ executable mess
   hs-source-dirs:      src
   main-is:             Main.hs
   default-language:    Haskell2010
+  other-modules:       Data.VkMess
   build-depends:       base >= 4.7 && < 5
                      , VKHS
                      , text >= 1.2.2
