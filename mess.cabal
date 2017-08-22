@@ -25,3 +25,4 @@ executable mess-fetch
                      , aeson >= 1.1
                      , bytestring >= 0.10
                      , binary >= 0.8
+                     , optparse-applicative >= 0.13

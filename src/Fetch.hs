@@ -11,6 +11,9 @@ import Data.List (groupBy, sortOn, intersperse)
 import Data.Text (Text, pack, unpack)
 import qualified Data.Text.IO
 
+import Options.Applicative
+import Data.Semigroup((<>))
+
 import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..))
 import Web.VKHS.API.Types (Sized(..))
 
@@ -36,10 +39,21 @@ getAllMessagesFrom out from = do
 getAllMessages :: (MonadAPI m x s) => Bool -> API m x [Message]
 getAllMessages = flip getAllMessagesFrom 0
 
+optparser :: IO FilePath
+optparser = execParser opts
+  where
+    opts = info (outFile <**> helper)
+      ( fullDesc
+     <> progDesc "Fetch all messages from a vk.com profile")
+    outFile = argument str $
+              metavar "FILE"
+           <> help "Output file"
+
 main :: IO ()
 main = do
+  outFile <- optparser
   x <- runVK defaultOptions
     $ liftA2 (++) (getAllMessages False) (getAllMessages True)
   case x of
     (Left e)  -> putStrLn $ show e
-    (Right a) -> writeFile "binary" $ encode $ Snapshot a
+    (Right a) -> writeFile outFile $ encode $ Snapshot a
