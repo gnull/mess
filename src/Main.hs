@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Monad (mzero)
-import Data.Aeson (FromJSON(..), Value(..), (.:))
+import Data.Aeson (FromJSON(..), Value(..), (.:), withObject)
 import Data.Text (Text, pack)
 import qualified Data.Text.IO
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -25,13 +24,12 @@ instance FromJSON UnixTime where
   parseJSON = fmap (fromEpochTime . CTime) . parseJSON
 
 instance FromJSON Message where
-  parseJSON (Object v) =
+  parseJSON = withObject "message" $ \v ->
       Message <$> v .: "id"
               <*> v .: "body"
               <*> v .: "date"
               <*> ((/= (0 :: Int)) <$> v .: "read_state")
               <*> ((/= (0 :: Int)) <$> v .: "out")
-  parseJSON _ = mzero
 
 getMessagesR :: (MonadAPI m x s) => Bool -> MessageId -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple
