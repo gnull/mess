@@ -20,3 +20,5 @@ executable mess
   build-depends:       base >= 4.7 && < 5
                      , VKHS
                      , text >= 1.2.2
+                     , unix-time >= 0.3.7
+                     , aeson >= 1.1

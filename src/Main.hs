@@ -1,14 +1,37 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Monad (mzero)
+import Data.Aeson (FromJSON(..), Value(..), (.:))
+import Data.Text (Text)
 import qualified Data.Text.IO
+import Data.UnixTime (fromEpochTime, UnixTime)
+import Foreign.C.Types (CTime(CTime))
 
-import Web.VKHS (runVK, defaultOptions, apiR)
-import Web.VKHS.API.Base (jsonEncodePretty)
+import Web.VKHS (runVK, defaultOptions, apiSimple)
+import Web.VKHS.API.Types (Sized)
+
+type MessageId   = Int
+
+data Message = Message {
+                 id   :: MessageId
+               , body :: Text
+               , date :: UnixTime
+               } deriving (Show)
+
+instance FromJSON UnixTime where
+  parseJSON = fmap (fromEpochTime . CTime) . parseJSON
+
+instance FromJSON Message where
+  parseJSON (Object v) =
+      Message <$> v .: "id"
+              <*> v .: "body"
+              <*> v .: "date"
+  parseJSON _ = mzero
 
 main :: IO ()
 main = do
-  x <- runVK defaultOptions $ apiR "messages.get" [("count", "10")]
+  x <- runVK defaultOptions $ apiSimple "messages.get" [("count", "2")]
   case x of
     (Left e) ->  putStrLn $ show e
-    (Right a) -> Data.Text.IO.putStrLn $ jsonEncodePretty a
+    (Right a) -> putStrLn $ show (a :: Sized [Message])
