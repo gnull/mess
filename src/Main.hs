@@ -72,7 +72,7 @@ instance FromJSON Message where
                     else MessageFromDialog <$> uid
     return $ Message {..}
 
-getMessagesR :: (MonadAPI m x s) => Bool -> MessageId -> Int -> API m x (Sized [Message])
+getMessagesR :: (MonadAPI m x s) => Bool -> Int -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple
   "messages.get"
   [ ("count", pack $ show count)
