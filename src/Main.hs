@@ -31,16 +31,18 @@ instance Show MessageAddr where
   show (MessageToDialog x)   = "[d] -> " ++ show x
   show (MessageFromDialog x) = "[d] <- " ++ show x
 
+whateverId :: MessageAddr -> Int
+whateverId (MessageToChat a)     = a
+whateverId (MessageFromChat _ a) = a
+whateverId (MessageToDialog a)   = a
+whateverId (MessageFromDialog a) = a
+
 addrEq :: MessageAddr -> MessageAddr -> Bool
 addrEq a b = isChat a == isChat b && whateverId a == whateverId b
   where
     isChat (MessageToChat _)     = True
     isChat (MessageFromChat _ _) = True
     isChat _ = False
-    whateverId (MessageToChat a)     = a
-    whateverId (MessageFromChat _ a) = a
-    whateverId (MessageToDialog a)   = a
-    whateverId (MessageFromDialog a) = a
 
 data Message = Message {
                  mId   :: MessageId
@@ -104,4 +106,5 @@ main = do
     (Right a) -> putStrLn
       $ unlines $ intersperse "---------" $ map unlines
       $ map (map show) $ map (sortOn mDate)
-      $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr)) a
+      $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr))
+      $ sortOn (whateverId . mAddr) a
