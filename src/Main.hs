@@ -4,8 +4,8 @@ module Main where
 
 import Control.Arrow ((***))
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
-import Data.List (groupBy)
-import Data.Text (Text, pack)
+import Data.List (groupBy, sortOn)
+import Data.Text (Text, pack, unpack)
 import qualified Data.Text.IO
 import Data.UnixTime (fromEpochTime, UnixTime)
 import Foreign.C.Types (CTime(CTime))
@@ -21,7 +21,13 @@ type ChatId       = Int
 data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
-                 | MessageFromDialog UserId deriving (Show)
+                 | MessageFromDialog UserId deriving (Ord, Eq)
+
+instance Show MessageAddr where
+  show (MessageToChat x)     = "[c] -> " ++ show x
+  show (MessageFromChat y x) = "[c] <- " ++ show x ++ " by " ++ show y
+  show (MessageToDialog x)   = "[d] -> " ++ show x
+  show (MessageFromDialog x) = "[d] <- " ++ show x
 
 addrEq :: MessageAddr -> MessageAddr -> Bool
 addrEq a b = isChat a == isChat b && whateverId a == whateverId b
@@ -40,7 +46,10 @@ data Message = Message {
                , mDate :: UnixTime
                , mRead :: Bool
                , mAddr :: MessageAddr
-               } deriving (Show)
+               }
+
+instance Show Message where
+  show (Message {..}) = show mAddr ++ ": " ++ unpack mBody
 
 instance FromJSON UnixTime where
   parseJSON = fmap (fromEpochTime . CTime) . parseJSON
@@ -76,6 +85,8 @@ main = do
   x <- runVK defaultOptions $ getMessagesR True 0 20
   case x of
     (Left e) ->  putStrLn $ show e
-    (Right a) -> putStrLn $ show
+    (Right a) -> putStrLn
+      $ unlines $ map show $ concat
       $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr))
+      $ sortOn mAddr
       $ m_items (a :: Sized [Message])
