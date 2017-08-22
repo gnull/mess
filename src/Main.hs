@@ -17,6 +17,8 @@ data Message = Message {
                  id   :: MessageId
                , body :: Text
                , date :: UnixTime
+               , read :: Bool
+               , out  :: Bool
                } deriving (Show)
 
 instance FromJSON UnixTime where
@@ -27,6 +29,8 @@ instance FromJSON Message where
       Message <$> v .: "id"
               <*> v .: "body"
               <*> v .: "date"
+              <*> ((/= (0 :: Int)) <$> v .: "read_state")
+              <*> ((/= (0 :: Int)) <$> v .: "out")
   parseJSON _ = mzero
 
 main :: IO ()
