@@ -2,6 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
+import Control.Applicative (liftA2)
 import Control.Arrow ((***))
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
 import Data.List (groupBy, sortOn)
@@ -10,7 +11,7 @@ import qualified Data.Text.IO
 import Data.UnixTime (fromEpochTime, UnixTime)
 import Foreign.C.Types (CTime(CTime))
 
-import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI)
+import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..))
 import Web.VKHS.API.Types (Sized(..))
 
 type MessageId    = Int
@@ -80,13 +81,25 @@ getMessagesR out from count = apiSimple
   , ("out", if out then "1" else "0")
   ]
 
+getAllMessagesFrom :: (MonadAPI m x s) => Bool -> Int -> API m x [Message]
+getAllMessagesFrom out from = do
+  mss <- m_items <$> getMessagesR out from 200
+  if length mss < 200
+      then return mss
+      else do
+        mss' <- getAllMessagesFrom out (from + 200)
+        return $ mss ++ mss'
+
+getAllMessages :: (MonadAPI m x s) => Bool -> API m x [Message]
+getAllMessages = flip getAllMessagesFrom 0
+
 main :: IO ()
 main = do
-  x <- runVK defaultOptions $ getMessagesR True 0 20
+  x <- runVK defaultOptions
+    $ liftA2 (++) (getAllMessages False) (getAllMessages True)
   case x of
     (Left e) ->  putStrLn $ show e
     (Right a) -> putStrLn
       $ unlines $ map show $ concat
       $ groupBy (curry $ uncurry addrEq . (mAddr *** mAddr))
-      $ sortOn mAddr
-      $ m_items (a :: Sized [Message])
+      $ sortOn mAddr a
