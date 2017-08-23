@@ -3,15 +3,15 @@
 
 module Main where
 
-import Prelude hiding (readFile, putStrLn)
+import Prelude hiding (readFile, putStrLn, writeFile)
 
-import Control.Monad (sequence_)
+import Control.Monad (forM_)
 import Data.Binary (encode, decode)
-import Data.ByteString.Lazy.Char8 (readFile, putStrLn)
+import Data.ByteString.Lazy.Char8 (readFile, putStrLn, writeFile)
 import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
-import Data.List (sortOn, groupBy, intersperse)
+import Data.List (nub)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess ( Message(..)
@@ -24,14 +24,14 @@ import Data.VkMess ( Message(..)
 
 import Options.Applicative
 import Data.Semigroup((<>))
-
+import Text.Blaze (ToValue(..))
 import Text.Blaze.Html5 as H ( Html
                              , docTypeHtml, head, title
-                             , body, hr, div, pre, span
+                             , body, hr, div, pre, span, a
                              , toHtml
                              , (!)
                              )
-import Text.Blaze.Html5.Attributes (src, style)
+import Text.Blaze.Html5.Attributes (src, style, href)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 addrHtml :: MessageAddr -> Html
@@ -52,12 +52,22 @@ messageHtml (Message {..}) = do
 dialogHtml :: [Message] -> Html
 dialogHtml = mapM_ messageHtml
 
-mainHtml :: Snapshot -> Html
-mainHtml (Snapshot ms) = docTypeHtml $ do
+class Urlable a where
+  urlFor :: a -> String
+
+-- Type returned by this function is not exported by Blaze, therefore this
+-- function has no signature
+hrefFor = href . toValue . urlFor
+
+instance Urlable MessageGroup where
+  urlFor = (++ ".html") . show
+
+mainHtml :: [MessageGroup] -> Html
+mainHtml gs = docTypeHtml $ do
   H.head $ do
     H.title "My title"
   body $ do
-    sequence_ $ intersperse hr $ map (dialogHtml . sortOn mDate) $ groupBy (on (==) $ messageGroup . mAddr) $ sortOn (messageGroup . mAddr) ms
+    forM_ gs $ \g -> H.div $ a (toHtml $ urlFor g) ! hrefFor g
 
 optparser :: IO FilePath
 optparser = execParser opts
@@ -75,5 +85,5 @@ optparser = execParser opts
 main :: IO ()
 main = do
   inFile <- optparser
-  ms <- decode <$> readFile inFile
-  putStrLn $ renderHtml $ mainHtml ms
+  (Snapshot ms) <- decode <$> readFile inFile
+  writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
