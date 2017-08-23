@@ -17,7 +17,7 @@ import Data.Semigroup((<>))
 import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..))
 import Web.VKHS.API.Types (Sized(..))
 
-import Data.VkMess (Message(..), Snapshot(..), addrEq, whateverId)
+import Data.VkMess (Message(..), Snapshot(..))
 
 getMessagesR :: (MonadAPI m x s) => Bool -> Int -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple

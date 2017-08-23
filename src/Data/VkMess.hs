@@ -4,8 +4,6 @@
 
 module Data.VkMess ( Message(..)
                    , Snapshot(..)
-                   , addrEq
-                   , whateverId
                    ) where
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
@@ -26,19 +24,6 @@ data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
                  | MessageFromDialog UserId deriving (Ord, Eq, Generic, Show)
-
-whateverId :: MessageAddr -> Int
-whateverId (MessageToChat a)     = a
-whateverId (MessageFromChat _ a) = a
-whateverId (MessageToDialog a)   = a
-whateverId (MessageFromDialog a) = a
-
-addrEq :: MessageAddr -> MessageAddr -> Bool
-addrEq a b = isChat a == isChat b && whateverId a == whateverId b
-  where
-    isChat (MessageToChat _)     = True
-    isChat (MessageFromChat _ _) = True
-    isChat _ = False
 
 data Message = Message {
                  mId   :: MessageId

@@ -8,7 +8,7 @@ import Prelude hiding (readFile, putStrLn)
 import Control.Monad (mapM_)
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy.Char8 (readFile, putStrLn)
-import Data.VkMess (Message(..), Snapshot(..), addrEq, whateverId)
+import Data.VkMess (Message(..), Snapshot(..))
 
 import Options.Applicative
 import Data.Semigroup((<>))
