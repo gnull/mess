@@ -56,4 +56,4 @@ main = do
     $ liftA2 (++) (getAllMessages False) (getAllMessages True)
   case x of
     (Left e)  -> putStrLn $ show e
-    (Right a) -> writeFile outFile $ encode $ Snapshot a
+    (Right a) -> writeFile outFile $ encode $ Snapshot $ sortOn mDate a
