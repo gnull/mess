@@ -27,7 +27,7 @@ import Data.Semigroup((<>))
 import Text.Blaze (ToValue(..))
 import Text.Blaze.Html5 as H ( Html
                              , docTypeHtml, head, title
-                             , body, hr, div, pre, span, a
+                             , body, hr, div, p, span, a
                              , toHtml
                              , (!)
                              )
@@ -43,14 +43,15 @@ unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
 messageHtml :: Message -> Html
 messageHtml (Message {..}) = do
-  H.div $ do
+  H.div ! style "border: 1px solid black; background-color: #ddd; margin: 1px; padding: 2px;" $ do
     H.div $ do
       addrHtml mAddr
+      H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
-    pre $ toHtml mBody
+    p $ toHtml mBody
 
 dialogHtml :: [Message] -> Html
-dialogHtml = mapM_ messageHtml
+dialogHtml ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;" $ H.div ! style "width: 500px; word-wrap: break-word;" $ mapM_ messageHtml ms
 
 class Urlable a where
   urlFor :: a -> String
