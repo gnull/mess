@@ -11,7 +11,7 @@ import Data.ByteString.Lazy.Char8 (readFile, putStrLn, writeFile)
 import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
-import Data.List (nub)
+import Data.List (nub, sortOn, groupBy)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess ( Message(..)
@@ -87,3 +87,7 @@ main = do
   inFile <- optparser
   (Snapshot ms) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
+  let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
+  forM_ cs $ \c -> do
+    let g = messageGroup $ mAddr $ Prelude.head c
+    writeFile (urlFor g) $ renderHtml $ dialogHtml $ sortOn mDate c
