@@ -3,7 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Data.VkMess ( Message(..)
+                   , MessageAddr(..)
                    , Snapshot(..)
+                   , MessageGroup(..)
+                   , messageGroup
+                   , isMessageTo
                    ) where
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
@@ -24,6 +28,19 @@ data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
                  | MessageFromDialog UserId deriving (Ord, Eq, Generic, Show)
+
+isMessageTo :: MessageAddr -> Bool
+isMessageTo (MessageToChat   _) = True
+isMessageTo (MessageToDialog _) = True
+isMessageTo _ = False
+
+data MessageGroup = MessageChat ChatId | MessageDialog UserId deriving (Show, Ord, Eq)
+
+messageGroup :: MessageAddr -> MessageGroup
+messageGroup (MessageToChat     x) = MessageChat x
+messageGroup (MessageFromChat _ x) = MessageChat x
+messageGroup (MessageToDialog   x) = MessageDialog x
+messageGroup (MessageFromDialog x) = MessageDialog x
 
 data Message = Message {
                  mId   :: MessageId

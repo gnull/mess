@@ -8,23 +8,46 @@ import Prelude hiding (readFile, putStrLn)
 import Control.Monad (mapM_)
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy.Char8 (readFile, putStrLn)
-import Data.VkMess (Message(..), Snapshot(..))
+import Data.ByteString.Char8 (unpack)
+
+import Data.Function (on)
+import Data.List (sortOn, groupBy)
+
+import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
+import Data.VkMess ( Message(..)
+                   , MessageAddr(..)
+                   , Snapshot(..)
+                   , MessageGroup(..)
+                   , messageGroup
+                   , isMessageTo
+                   )
 
 import Options.Applicative
 import Data.Semigroup((<>))
 
 import Text.Blaze.Html5 as H ( Html
                              , docTypeHtml, head, title
-                             , img, body, p, ul, li, h4
+                             , img, body, p, ul, li, h4, div, pre, span
                              , toHtml
                              , (!)
                              )
 import Text.Blaze.Html5.Attributes (src, style)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
+addrHtml :: MessageAddr -> Html
+addrHtml x = H.span . toHtml $ field ++ show (messageGroup x) where
+  field = if isMessageTo x then "To: " else "From: "
+
+unixTimeHtml :: UnixTime -> Html
+unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
+
 messageHtml :: Message -> Html
 messageHtml (Message {..}) = do
-  (p $ toHtml mBody) ! style "border: 1px solid black;"
+  H.div $ do
+    H.div $ do
+      addrHtml mAddr
+      unixTimeHtml mDate
+    pre $ toHtml mBody
 
 dialogHtml :: [Message] -> Html
 dialogHtml = mapM_ messageHtml
@@ -34,7 +57,7 @@ mainHtml (Snapshot ms) = docTypeHtml $ do
   H.head $ do
     H.title "My title"
   body $ do
-    dialogHtml ms
+    dialogHtml $ sortOn mDate $ Prelude.head $ groupBy (on (==) $ messageGroup . mAddr) $ sortOn (messageGroup . mAddr) ms
 
 optparser :: IO FilePath
 optparser = execParser opts
