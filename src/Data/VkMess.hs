@@ -34,7 +34,11 @@ isMessageTo (MessageToChat   _) = True
 isMessageTo (MessageToDialog _) = True
 isMessageTo _ = False
 
-data MessageGroup = MessageChat ChatId | MessageDialog UserId deriving (Show, Ord, Eq)
+data MessageGroup = MessageChat ChatId | MessageDialog UserId deriving (Ord, Eq)
+
+instance Show MessageGroup where
+  show (MessageChat   x) = "c" ++ show x
+  show (MessageDialog x) = "id" ++ show x
 
 messageGroup :: MessageAddr -> MessageGroup
 messageGroup (MessageToChat     x) = MessageChat x
