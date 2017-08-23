@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Main where
 
 import Prelude hiding (readFile, putStrLn)
@@ -13,7 +15,7 @@ import Data.Semigroup((<>))
 
 import Text.Blaze.Html5 as H ( Html
                              , docTypeHtml, head, title
-                             , img, body, p, ul, li
+                             , img, body, p, ul, li, h4
                              , toHtml
                              , (!)
                              )
@@ -21,7 +23,9 @@ import Text.Blaze.Html5.Attributes (src, style)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 messageHtml :: Message -> Html
-messageHtml = (! style "border: 1px solid black;") . p . toHtml . mBody
+messageHtml (Message {..}) = do
+  h4 $ toHtml $ show $ mAddr
+  (p $ toHtml mBody) ! style "border: 1px solid black;"
 
 dialogHtml :: [Message] -> Html
 dialogHtml = mapM_ messageHtml
