@@ -5,13 +5,13 @@ module Main where
 
 import Prelude hiding (readFile, putStrLn)
 
-import Control.Monad (mapM_)
+import Control.Monad (sequence_)
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy.Char8 (readFile, putStrLn)
 import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
-import Data.List (sortOn, groupBy)
+import Data.List (sortOn, groupBy, intersperse)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess ( Message(..)
@@ -27,7 +27,7 @@ import Data.Semigroup((<>))
 
 import Text.Blaze.Html5 as H ( Html
                              , docTypeHtml, head, title
-                             , img, body, p, ul, li, h4, div, pre, span
+                             , body, hr, div, pre, span
                              , toHtml
                              , (!)
                              )
@@ -57,7 +57,7 @@ mainHtml (Snapshot ms) = docTypeHtml $ do
   H.head $ do
     H.title "My title"
   body $ do
-    dialogHtml $ sortOn mDate $ Prelude.head $ groupBy (on (==) $ messageGroup . mAddr) $ sortOn (messageGroup . mAddr) ms
+    sequence_ $ intersperse hr $ map (dialogHtml . sortOn mDate) $ groupBy (on (==) $ messageGroup . mAddr) $ sortOn (messageGroup . mAddr) ms
 
 optparser :: IO FilePath
 optparser = execParser opts
