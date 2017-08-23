@@ -24,7 +24,6 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 messageHtml :: Message -> Html
 messageHtml (Message {..}) = do
-  h4 $ toHtml $ show $ mAddr
   (p $ toHtml mBody) ! style "border: 1px solid black;"
 
 dialogHtml :: [Message] -> Html

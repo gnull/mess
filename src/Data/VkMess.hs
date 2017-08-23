@@ -25,13 +25,7 @@ type ChatId       = Int
 data MessageAddr = MessageToChat ChatId
                  | MessageFromChat UserId ChatId -- This one contains source user id
                  | MessageToDialog UserId
-                 | MessageFromDialog UserId deriving (Ord, Eq, Generic)
-
-instance Show MessageAddr where
-  show (MessageToChat x)     = "[c] -> " ++ show x
-  show (MessageFromChat y x) = "[c] <- " ++ show x ++ " by " ++ show y
-  show (MessageToDialog x)   = "[d] -> " ++ show x
-  show (MessageFromDialog x) = "[d] <- " ++ show x
+                 | MessageFromDialog UserId deriving (Ord, Eq, Generic, Show)
 
 whateverId :: MessageAddr -> Int
 whateverId (MessageToChat a)     = a
@@ -52,11 +46,7 @@ data Message = Message {
                , mDate :: UnixTime
                , mRead :: Bool
                , mAddr :: MessageAddr
-               } deriving (Generic)
-
-instance Show Message where
-  show (Message {..}) = Data.ByteString.Char8.unpack (formatUnixTimeGMT webDateFormat mDate)
-                     ++ ": " ++ show mAddr ++ ": " ++ unpack mBody
+               } deriving (Generic, Show)
 
 instance FromJSON UnixTime where
   parseJSON = fmap (fromEpochTime . CTime) . parseJSON
