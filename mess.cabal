@@ -39,3 +39,5 @@ executable mess-view
                      , bytestring >= 0.10
                      , binary >= 0.8
                      , optparse-applicative >= 0.13
+                     , blaze-html >= 0.9
+                     , blaze-markup >= 0.8

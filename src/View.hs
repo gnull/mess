@@ -1,14 +1,37 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prelude hiding (readFile)
+import Prelude hiding (readFile, putStrLn)
 
+import Control.Monad (mapM_)
 import Data.Binary (encode, decode)
-import Data.ByteString.Lazy (readFile)
+import Data.ByteString.Lazy.Char8 (readFile, putStrLn)
 import Data.VkMess (Message(..), Snapshot(..), addrEq, whateverId)
 
 import Options.Applicative
 import Data.Semigroup((<>))
+
+import Text.Blaze.Html5 as H ( Html
+                             , docTypeHtml, head, title
+                             , img, body, p, ul, li
+                             , toHtml
+                             , (!)
+                             )
+import Text.Blaze.Html5.Attributes (src, style)
+import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
+
+messageHtml :: Message -> Html
+messageHtml = (! style "border: 1px solid black;") . p . toHtml . mBody
+
+dialogHtml :: [Message] -> Html
+dialogHtml = mapM_ messageHtml
+
+mainHtml :: Snapshot -> Html
+mainHtml (Snapshot ms) = docTypeHtml $ do
+  H.head $ do
+    H.title "My title"
+  body $ do
+    dialogHtml ms
 
 optparser :: IO FilePath
 optparser = execParser opts
@@ -26,5 +49,5 @@ optparser = execParser opts
 main :: IO ()
 main = do
   inFile <- optparser
-  (Snapshot ms) <- decode <$> readFile inFile
-  putStrLn $ show $ length ms
+  ms <- decode <$> readFile inFile
+  putStrLn $ renderHtml $ mainHtml ms
