@@ -80,9 +80,6 @@ optparser = execParser opts
               metavar "FILE"
            <> help "Input file"
 
--- TODO: Implement simple program to render these messages as an HTML page
---    See: https://hackage.haskell.org/package/blaze-html
---         https://jaspervdj.be/blaze/tutorial.html
 main :: IO ()
 main = do
   inFile <- optparser
