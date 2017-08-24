@@ -4,7 +4,7 @@ module Main where
 import Prelude hiding (writeFile)
 
 import Control.Applicative (liftA2)
-import Control.Arrow ((***))
+import Control.Arrow ((***), (&&&))
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy (writeFile)
 import Data.List (groupBy, sortOn, intersperse, nub)
@@ -48,8 +48,8 @@ getUsers [] = return []
 getUsers us = apiSimple "users.get" [("user_ids", ids)] where
   ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
 
-getNames :: MonadAPI m x s => [UserId] -> API m x [String]
-getNames us = map extractName <$> getUsers us where
+getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
+getNames us = map (fromInteger . ur_id &&& extractName) <$> getUsers us where
   extractName u = unpack (ur_first_name u) ++ " " ++ unpack (ur_last_name u)
 
 optparser :: IO FilePath
@@ -81,6 +81,6 @@ main = do
       (Right (self, names)) <- runVK myOptions $ do
         self <- fromInteger <$> ur_id <$> getCurrentUser
         let ids = nub $ self : getAllAddressees a
-        names <- zipWith (,) ids <$> getNames ids
+        names <- getNames ids
         return (self, names)
       writeFile outFile $ encode $ Snapshot a self names

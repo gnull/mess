@@ -12,7 +12,7 @@ import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
 import Data.List (nub, sortOn, groupBy)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess ( Message(..)
@@ -39,7 +39,7 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
 addrHtml us s x = H.span . toHtml
-                $ fromJust
+                $ fromMaybe "Unknown User"
                 $ flip lookup us
                 $ messageAuthor s x where
 
