@@ -9,6 +9,7 @@ module Data.VkMess ( Message(..)
                    , messageGroup
                    , isMessageTo
                    , UserId
+                   , messageAuthor
                    ) where
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
@@ -34,6 +35,13 @@ isMessageTo :: MessageAddr -> Bool
 isMessageTo (MessageToChat   _) = True
 isMessageTo (MessageToDialog _) = True
 isMessageTo _ = False
+
+-- Given self uid and message addr, return uid of message author
+messageAuthor :: UserId -> MessageAddr -> UserId
+messageAuthor s (MessageToChat _    ) = s
+messageAuthor s (MessageToDialog _  ) = s
+messageAuthor _ (MessageFromChat x _) = x
+messageAuthor _ (MessageFromDialog x) = x
 
 data MessageGroup = MessageChat ChatId | MessageDialog UserId deriving (Ord, Eq)
 

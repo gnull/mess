@@ -20,6 +20,8 @@ import Data.VkMess ( Message(..)
                    , MessageGroup(..)
                    , messageGroup
                    , isMessageTo
+                   , messageAuthor
+                   , UserId
                    )
 
 import Options.Applicative
@@ -34,24 +36,25 @@ import Text.Blaze.Html5 as H ( Html
 import Text.Blaze.Html5.Attributes (src, style, href)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
-addrHtml :: MessageAddr -> Html
-addrHtml x = H.span . toHtml $ field ++ show (messageGroup x) where
-  field = if isMessageTo x then "To: " else "From: "
+addrHtml :: UserId -> MessageAddr -> Html
+addrHtml s x = H.span . toHtml $ show (messageAuthor s x) where
 
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
-messageHtml :: Message -> Html
-messageHtml (Message {..}) = do
+messageHtml :: UserId -> Message -> Html
+messageHtml s (Message {..}) = do
   H.div ! style "border: 1px solid black; background-color: #ddd; margin: 1px; padding: 2px;" $ do
     H.div $ do
-      addrHtml mAddr
+      addrHtml s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
     p $ toHtml mBody
 
-dialogHtml :: [Message] -> Html
-dialogHtml ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;" $ H.div ! style "width: 500px; word-wrap: break-word;" $ mapM_ messageHtml ms
+dialogHtml :: UserId -> [Message] -> Html
+dialogHtml s ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
+              $ H.div ! style "width: 500px; word-wrap: break-word;"
+              $ mapM_ (messageHtml s) ms
 
 class Urlable a where
   urlFor :: a -> String
@@ -83,9 +86,9 @@ optparser = execParser opts
 main :: IO ()
 main = do
   inFile <- optparser
-  (Snapshot ms _ _) <- decode <$> readFile inFile
+  (Snapshot ms self _) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
   let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
   forM_ cs $ \c -> do
     let g = messageGroup $ mAddr $ Prelude.head c
-    writeFile (urlFor g) $ renderHtml $ dialogHtml $ sortOn mDate c
+    writeFile (urlFor g) $ renderHtml $ dialogHtml self $ sortOn mDate c
