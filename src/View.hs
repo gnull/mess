@@ -70,12 +70,17 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-mainHtml :: [MessageGroup] -> Html
-mainHtml gs = docTypeHtml $ do
+groupCaption :: [(UserId, String)] -> [Message] -> String
+groupCaption us g = case messageGroup $ mAddr $ Prelude.head g of
+  x@(MessageChat _) -> show x
+  (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
+
+mainHtml :: [(UserId, String)] -> [[Message]] -> Html
+mainHtml us gs = docTypeHtml $ do
   H.head $ do
     H.title "My title"
   body $ do
-    forM_ gs $ \g -> H.div $ a (toHtml $ urlFor g) ! hrefFor g
+    forM_ gs $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ Prelude.head g) $ toHtml $ groupCaption us g
 
 optparser :: IO FilePath
 optparser = execParser opts
@@ -91,8 +96,8 @@ main :: IO ()
 main = do
   inFile <- optparser
   (Snapshot ms self users) <- decode <$> readFile inFile
-  writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
   let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
+  writeFile "index.html" $ renderHtml $ mainHtml users cs
   forM_ cs $ \c -> do
     let g = messageGroup $ mAddr $ Prelude.head c
     writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate c
