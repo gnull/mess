@@ -14,6 +14,7 @@ module Data.VkMess ( Message(..)
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
 import qualified Data.ByteString.Char8 (unpack)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, unpack)
 import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
 import Foreign.C.Types (CTime(CTime))
@@ -56,11 +57,10 @@ messageGroup (MessageToDialog   x) = MessageDialog x
 messageGroup (MessageFromDialog x) = MessageDialog x
 
 data Message = Message {
-                 mId   :: MessageId
-               , mBody :: Text
+                 mBody :: Text
                , mDate :: UnixTime
-               , mRead :: Bool
                , mAddr :: MessageAddr
+               , mFwd  :: [Message]
                } deriving (Generic, Show)
 
 instance FromJSON UnixTime where
@@ -68,11 +68,9 @@ instance FromJSON UnixTime where
 
 instance FromJSON Message where
   parseJSON = withObject "message" $ \v -> do
-    mId <- v .: "id"
     mBody <- v .: "body"
     mDate <- v .: "date"
-    mRead <- (/= (0 :: Int)) <$> v .: "read_state"
-    out <- (/= (0 :: Int)) <$> v .: "out"
+    out <- (/= (0 :: Int)) <$> fromMaybe 0 <$> v .:? "out"
     chatId <- v .:? "chat_id"
     let uid = v .: "user_id"
     mAddr <- case chatId of
@@ -82,6 +80,7 @@ instance FromJSON Message where
                   Nothing -> if out
                     then MessageToDialog   <$> uid
                     else MessageFromDialog <$> uid
+    mFwd <- fromMaybe [] <$> v .:? "fwd_messages"
     return $ Message {..}
 
 data Snapshot = Snapshot { sMessages :: [Message]

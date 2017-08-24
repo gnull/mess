@@ -54,6 +54,8 @@ messageHtml us s (Message {..}) = do
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
     p $ toHtml mBody
+    H.div ! style "padding-left: 10px;" $
+      forM_ mFwd $ messageHtml us s
 
 dialogHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
 dialogHtml us s ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
