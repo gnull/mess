@@ -12,6 +12,7 @@ import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
 import Data.List (nub, sortOn, groupBy)
+import Data.Maybe (fromJust)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess ( Message(..)
@@ -36,25 +37,28 @@ import Text.Blaze.Html5 as H ( Html
 import Text.Blaze.Html5.Attributes (src, style, href)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
-addrHtml :: UserId -> MessageAddr -> Html
-addrHtml s x = H.span . toHtml $ show (messageAuthor s x) where
+addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
+addrHtml us s x = H.span . toHtml
+                $ fromJust
+                $ flip lookup us
+                $ messageAuthor s x where
 
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
-messageHtml :: UserId -> Message -> Html
-messageHtml s (Message {..}) = do
+messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
+messageHtml us s (Message {..}) = do
   H.div ! style "border: 1px solid black; background-color: #ddd; margin: 1px; padding: 2px;" $ do
     H.div $ do
-      addrHtml s mAddr
+      addrHtml us s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
     p $ toHtml mBody
 
-dialogHtml :: UserId -> [Message] -> Html
-dialogHtml s ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
+dialogHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
+dialogHtml us s ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
               $ H.div ! style "width: 500px; word-wrap: break-word;"
-              $ mapM_ (messageHtml s) ms
+              $ mapM_ (messageHtml us s) ms
 
 class Urlable a where
   urlFor :: a -> String
@@ -86,9 +90,9 @@ optparser = execParser opts
 main :: IO ()
 main = do
   inFile <- optparser
-  (Snapshot ms self _) <- decode <$> readFile inFile
+  (Snapshot ms self users) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
   let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
   forM_ cs $ \c -> do
     let g = messageGroup $ mAddr $ Prelude.head c
-    writeFile (urlFor g) $ renderHtml $ dialogHtml self $ sortOn mDate c
+    writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate c
