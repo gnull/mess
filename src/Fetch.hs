@@ -7,7 +7,8 @@ import Control.Applicative (liftA2)
 import Control.Arrow ((***))
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy (writeFile)
-import Data.List (groupBy, sortOn, intersperse)
+import Data.List (groupBy, sortOn, intersperse, nub)
+import Data.Maybe (catMaybes)
 import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
 
@@ -17,7 +18,9 @@ import Data.Semigroup((<>))
 import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..), UserRecord, getCurrentUser)
 import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
-import Data.VkMess (Message(..), Snapshot(..), UserId)
+import Data.VkMess (Message(..), Snapshot(..), UserId, MessageAddr(..))
+
+myOptions = defaultOptions {o_max_request_rate_per_sec = 1}
 
 getMessagesR :: (MonadAPI m x s) => Bool -> Int -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple
@@ -59,11 +62,25 @@ optparser = execParser opts
               metavar "FILE"
            <> help "Output file"
 
+getAllAddressees :: [Message] -> [UserId]
+getAllAddressees = nub . catMaybes . map f where
+  f m = case mAddr m of
+    (MessageToChat     _) -> Nothing
+    (MessageFromChat x _) -> Just x
+    (MessageToDialog   x) -> Just x
+    (MessageFromDialog x) -> Just x
+
 main :: IO ()
 main = do
   outFile <- optparser
-  x <- runVK defaultOptions
+  x <- runVK myOptions
     $ liftA2 (++) (getAllMessages False) (getAllMessages True)
   case x of
     (Left e)  -> putStrLn $ show e
-    (Right a) -> writeFile outFile $ encode $ Snapshot $ sortOn mDate a
+    (Right a) -> do
+      (Right (self, names)) <- runVK myOptions $ do
+        self <- fromInteger <$> ur_id <$> getCurrentUser
+        let ids = nub $ self : getAllAddressees a
+        names <- zipWith (,) ids <$> getNames ids
+        return (self, names)
+      writeFile outFile $ encode $ Snapshot a self names

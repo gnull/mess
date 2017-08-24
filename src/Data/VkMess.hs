@@ -76,7 +76,10 @@ instance FromJSON Message where
                     else MessageFromDialog <$> uid
     return $ Message {..}
 
-data Snapshot = Snapshot [Message] deriving (Generic)
+data Snapshot = Snapshot { sMessages :: [Message]
+                         , sSelf :: UserId
+                         , sUsers :: [(UserId, String)]
+                         } deriving (Generic)
 
 instance Binary MessageAddr
 instance Binary Message

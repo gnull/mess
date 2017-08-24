@@ -86,7 +86,7 @@ optparser = execParser opts
 main :: IO ()
 main = do
   inFile <- optparser
-  (Snapshot ms) <- decode <$> readFile inFile
+  (Snapshot ms _ _) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml $ nub $ map (messageGroup . mAddr) ms
   let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
   forM_ cs $ \c -> do
