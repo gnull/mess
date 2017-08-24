@@ -8,16 +8,16 @@ import Control.Arrow ((***))
 import Data.Binary (encode, decode)
 import Data.ByteString.Lazy (writeFile)
 import Data.List (groupBy, sortOn, intersperse)
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
 
 import Options.Applicative
 import Data.Semigroup((<>))
 
-import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..))
-import Web.VKHS.API.Types (Sized(..))
+import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..), UserRecord, getCurrentUser)
+import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
-import Data.VkMess (Message(..), Snapshot(..))
+import Data.VkMess (Message(..), Snapshot(..), UserId)
 
 getMessagesR :: (MonadAPI m x s) => Bool -> Int -> Int -> API m x (Sized [Message])
 getMessagesR out from count = apiSimple
@@ -38,6 +38,16 @@ getAllMessagesFrom out from = do
 
 getAllMessages :: (MonadAPI m x s) => Bool -> API m x [Message]
 getAllMessages = flip getAllMessagesFrom 0
+
+-- users.get allows up to 1000 ids, make sure you do no pass more
+getUsers :: MonadAPI m x s => [UserId] -> API m x [UserRecord]
+getUsers [] = return []
+getUsers us = apiSimple "users.get" [("user_ids", ids)] where
+  ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
+
+getNames :: MonadAPI m x s => [UserId] -> API m x [String]
+getNames us = map extractName <$> getUsers us where
+  extractName u = unpack (ur_first_name u) ++ " " ++ unpack (ur_last_name u)
 
 optparser :: IO FilePath
 optparser = execParser opts

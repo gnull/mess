@@ -8,6 +8,7 @@ module Data.VkMess ( Message(..)
                    , MessageGroup(..)
                    , messageGroup
                    , isMessageTo
+                   , UserId
                    ) where
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
