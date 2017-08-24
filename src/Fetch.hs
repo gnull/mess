@@ -73,7 +73,7 @@ getAllAddressees = nub . catMaybes . map f where
 main :: IO ()
 main = do
   outFile <- optparser
-  x <- runVK myOptions
+  x <- runVK myOptions -- TODO: join two calls to runVK into one
     $ liftA2 (++) (getAllMessages False) (getAllMessages True)
   case x of
     (Left e)  -> putStrLn $ show e
