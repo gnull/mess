@@ -53,11 +53,12 @@ unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
 attachmentHtml :: Attachment -> Html
 attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
-attachmentHtml (Photo xs) = H.span $ H.img ! src (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
+attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! style "height: auto; max-width: 100%;" ! src url
+  where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
-  H.div ! style ("border: 1px " `mappend` (if isMessageTo mAddr then "dashed" else "solid") `mappend` " black; background-color: #ddd; margin: 1px; padding: 2px;") $ do
+  H.div ! style ((if isMessageTo mAddr then "border: 1px dashed black; background-color: #fff;" else "border: 1px solid black; background-color: #ddd;") `mappend` "margin: 1px; padding: 2px;") $ do
     H.div $ do
       addrHtml us s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
@@ -73,7 +74,7 @@ dialogHtml us s ms = docTypeHtml $ do
     title "Dialog"
     H.meta ! charset "UTF-8"
   H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
-    $ H.div ! style "width: 500px; word-wrap: break-word;"
+    $ H.div ! style "width: 700px; word-wrap: break-word; margin: auto;"
     $ mapM_ (messageHtml us s) ms
 
 class Urlable a where
