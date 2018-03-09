@@ -49,7 +49,7 @@ unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
-  H.div ! style "border: 1px solid black; background-color: #ddd; margin: 1px; padding: 2px;" $ do
+  H.div ! style ("border: 1px " `mappend` (if isMessageTo mAddr then "dashed" else "solid") `mappend` " black; background-color: #ddd; margin: 1px; padding: 2px;") $ do
     H.div $ do
       addrHtml us s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
