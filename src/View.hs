@@ -7,7 +7,6 @@ import Prelude hiding (readFile, putStrLn, writeFile)
 
 import Control.Monad (forM_)
 import Data.Binary (encode, decode)
-import Data.ByteString.Lazy.Char8 (readFile, putStrLn, writeFile)
 import Data.ByteString.Char8 (unpack)
 
 import Data.Function (on)
@@ -23,6 +22,7 @@ import Data.VkMess ( Message(..)
                    , isMessageTo
                    , messageAuthor
                    , UserId
+                   , readFile, writeFile
                    )
 
 import Options.Applicative
@@ -72,17 +72,17 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-groupCaption :: [(UserId, String)] -> [Message] -> String
-groupCaption us g = case messageGroup $ mAddr $ Prelude.head g of
+groupCaption :: [(UserId, String)] -> Message -> String
+groupCaption us g = case messageGroup $ mAddr $ g of
   x@(MessageChat _) -> show x
   (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
 
-mainHtml :: [(UserId, String)] -> [[Message]] -> Html
-mainHtml us gs = docTypeHtml $ do
+mainHtml :: [(UserId, String)] -> [Message] -> Html
+mainHtml us ms = docTypeHtml $ do
   H.head $ do
     H.title "My title"
   body $ do
-    forM_ gs $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ Prelude.head g) $ toHtml $ groupCaption us g
+    forM_ ms $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ g) $ toHtml $ groupCaption us g
 
 optparser :: IO FilePath
 optparser = execParser opts
@@ -94,12 +94,10 @@ optparser = execParser opts
               metavar "FILE"
            <> help "Input file"
 
-main :: IO ()
 main = do
   inFile <- optparser
   (Snapshot ms self users) <- decode <$> readFile inFile
-  let cs = groupBy (on (==) (messageGroup . mAddr)) $ sortOn (messageGroup . mAddr) ms
-  writeFile "index.html" $ renderHtml $ mainHtml users cs
-  forM_ cs $ \c -> do
-    let g = messageGroup $ mAddr $ Prelude.head c
-    writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate c
+  writeFile "index.html" $ renderHtml $ mainHtml users $ map fst ms
+  forM_ ms $ \(d, m) -> do
+    let g = messageGroup $ mAddr d
+    writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate m

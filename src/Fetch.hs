@@ -5,9 +5,9 @@ import Prelude hiding (writeFile)
 
 import Control.Applicative (liftA2)
 import Control.Arrow ((***), (&&&))
+import Control.Monad (forM)
 import Data.Binary (encode, decode)
-import Data.ByteString.Lazy (writeFile)
-import Data.List (groupBy, sortOn, intersperse, nub)
+import Data.List (groupBy, sortOn, intersperse, nub, sort)
 import Data.Maybe (catMaybes)
 import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
@@ -18,29 +18,46 @@ import Data.Semigroup((<>))
 import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..), UserRecord, getCurrentUser)
 import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
-import Data.VkMess (Message(..), Snapshot(..), UserId, MessageAddr(..))
+import Data.VkMess (Message(..), Snapshot(..), UserId, MessageAddr(..), Dialog(..), MessageGroup(..), messageGroup, writeFile, readFile)
 
 myOptions = defaultOptions {o_max_request_rate_per_sec = 1}
 
-getMessagesR :: (MonadAPI m x s) => Bool -> Int -> Int -> API m x (Sized [Message])
-getMessagesR out from count = apiSimple
-  "messages.get"
+getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
+getDialogR peer from count = apiSimple
+  "messages.getHistory"
   [ ("count", pack $ show count)
   , ("offset", pack $ show from)
-  , ("out", if out then "1" else "0")
+  , ("peer_id", pack $ show peer)
   ]
 
-getAllMessagesFrom :: (MonadAPI m x s) => Bool -> Int -> API m x [Message]
-getAllMessagesFrom out from = do
-  mss <- m_items <$> getMessagesR out from 200
-  if length mss < 200
-      then return mss
-      else do
-        mss' <- getAllMessagesFrom out (from + 200)
-        return $ mss ++ mss'
+getDialogsR :: (MonadAPI m x s) => Int -> Int -> API m x (Sized [Message])
+getDialogsR from count = do
+  x <- apiSimple
+    "messages.getDialogs"
+    [ ("count", pack $ show count)
+    , ("offset", pack $ show from)
+    ]
+  pure $ x {m_items = map dMess $ m_items x}
 
-getAllMessages :: (MonadAPI m x s) => Bool -> API m x [Message]
-getAllMessages = flip getAllMessagesFrom 0
+getWholeDialog :: (MonadAPI m x s) => Int -> API m x [Message]
+getWholeDialog peer = f 0 where
+  f from = do
+    mss <- m_items <$> getDialogR peer from 200
+    if length mss < 200
+        then return mss
+        else do
+          mss' <- f (from + 200)
+          return $ mss ++ mss'
+
+getAllDialogs :: (MonadAPI m x s) => API m x [Message]
+getAllDialogs = f 0 where
+  f from = do
+    mss <- m_items <$> getDialogsR from 200
+    if length mss < 200
+        then return mss
+        else do
+          mss' <- f (from + 200)
+          return $ mss ++ mss'
 
 -- users.get allows up to 1000 ids, make sure you do no pass more
 getUsers :: MonadAPI m x s => [UserId] -> API m x [UserRecord]
@@ -62,6 +79,14 @@ optparser = execParser opts
               metavar "FILE"
            <> help "Output file"
 
+isDialog :: MessageGroup -> Bool
+isDialog (MessageDialog _) = True
+isDialog _ = False
+
+peerByMessageGroup :: MessageGroup -> Int
+peerByMessageGroup (MessageChat x) = 2000000000 + x
+peerByMessageGroup (MessageDialog x) = x
+
 getAllAddressees :: [Message] -> [UserId]
 getAllAddressees = nub . catMaybes . map f where
   f m = case mAddr m of
@@ -70,17 +95,17 @@ getAllAddressees = nub . catMaybes . map f where
     (MessageToDialog   x) -> Just x
     (MessageFromDialog x) -> Just x
 
-main :: IO ()
 main = do
   outFile <- optparser
-  x <- runVK myOptions -- TODO: join two calls to runVK into one
-    $ liftA2 (++) (getAllMessages False) (getAllMessages True)
+  x <- runVK myOptions $ do
+    ds <- getAllDialogs
+    ms <- forM ds $ \d -> do
+      ms <- getWholeDialog $ peerByMessageGroup $ messageGroup $ mAddr d
+      pure (d, ms)
+    self <- fromInteger <$> ur_id <$> getCurrentUser
+    let ids = nub $ sort $ self : (getAllAddressees $ Prelude.concat $ map snd ms)
+    names <- getNames ids
+    pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names }
   case x of
-    (Left e)  -> putStrLn $ show e
-    (Right a) -> do
-      (Right (self, names)) <- runVK myOptions $ do
-        self <- fromInteger <$> ur_id <$> getCurrentUser
-        let ids = nub $ self : getAllAddressees a
-        names <- getNames ids
-        return (self, names)
-      writeFile outFile $ encode $ Snapshot a self names
+    (Left e) -> putStrLn $ show e
+    (Right s) -> writeFile outFile $ encode s

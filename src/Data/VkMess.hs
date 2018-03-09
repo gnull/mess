@@ -10,10 +10,15 @@ module Data.VkMess ( Message(..)
                    , isMessageTo
                    , UserId
                    , messageAuthor
+                   , Dialog(..)
+                   , readFile, writeFile
                    ) where
+
+import Prelude hiding (readFile, writeFile)
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
 import qualified Data.ByteString.Char8 (unpack)
+import Data.ByteString.Lazy (readFile, writeFile)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, unpack)
 import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
@@ -83,10 +88,17 @@ instance FromJSON Message where
     mFwd <- fromMaybe [] <$> v .:? "fwd_messages"
     return $ Message {..}
 
-data Snapshot = Snapshot { sMessages :: [Message]
+data Dialog = Dialog {dMess :: Message}
+
+instance FromJSON Dialog where
+  parseJSON = withObject "dialog" $ \v -> do
+    x <- v .: "message"
+    return $ Dialog x
+
+data Snapshot = Snapshot { sDialogs :: [(Message, [Message])]
                          , sSelf :: UserId
                          , sUsers :: [(UserId, String)]
-                         } deriving (Generic)
+                         } deriving (Generic, Show)
 
 instance Binary MessageAddr
 instance Binary Message
