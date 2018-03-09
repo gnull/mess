@@ -8,9 +8,10 @@ import Prelude hiding (readFile, putStrLn, writeFile)
 import Control.Monad (forM_)
 import Data.Binary (encode, decode)
 import Data.ByteString.Char8 (unpack)
+import qualified Data.ByteString.Lazy.Char8 (unpack)
 
 import Data.Function (on)
-import Data.List (nub, sortOn, groupBy)
+import Data.List (nub, sortOn, groupBy, sort)
 import Data.Maybe (fromMaybe)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
@@ -23,6 +24,7 @@ import Data.VkMess ( Message(..)
                    , messageAuthor
                    , UserId
                    , readFile, writeFile
+                   , Attachment(..)
                    )
 
 import Options.Applicative
@@ -34,6 +36,8 @@ import Text.Blaze.Html5 as H ( Html
                              , toHtml
                              , (!)
                              , meta
+                             , pre
+                             , img
                              )
 import Text.Blaze.Html5.Attributes (src, style, href, charset)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
@@ -47,6 +51,10 @@ addrHtml us s x = H.span . toHtml
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
+attachmentHtml :: Attachment -> Html
+attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
+attachmentHtml (Photo xs) = H.span $ H.img ! src (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
+
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
   H.div ! style ("border: 1px " `mappend` (if isMessageTo mAddr then "dashed" else "solid") `mappend` " black; background-color: #ddd; margin: 1px; padding: 2px;") $ do
@@ -55,6 +63,7 @@ messageHtml us s (Message {..}) = do
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
     p $ toHtml mBody
+    H.div $ mapM_ attachmentHtml mAtt
     H.div ! style "padding-left: 10px;" $
       forM_ mFwd $ messageHtml us s
 
