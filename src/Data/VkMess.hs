@@ -12,15 +12,19 @@ module Data.VkMess ( Message(..)
                    , messageAuthor
                    , Dialog(..)
                    , readFile, writeFile
+                   , vkImageSizes, Attachment(..)
                    ) where
 
 import Prelude hiding (readFile, writeFile)
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
+import qualified Data.Aeson (encode)
 import qualified Data.ByteString.Char8 (unpack)
+import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy (readFile, writeFile)
-import Data.Maybe (fromMaybe)
-import Data.Text (Text, unpack)
+import Data.Maybe (fromMaybe, catMaybes)
+import Control.Monad (forM)
+import Data.Text (Text, unpack, pack)
 import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
 import Foreign.C.Types (CTime(CTime))
 
@@ -61,11 +65,29 @@ messageGroup (MessageFromChat _ x) = MessageChat x
 messageGroup (MessageToDialog   x) = MessageDialog x
 messageGroup (MessageFromDialog x) = MessageDialog x
 
+data Attachment = Photo [(Int, FilePath)] | Other ByteString deriving (Generic, Show)
+
+vkImageSizes = [2560, 1280, 807, 604, 130, 75]
+instance FromJSON Attachment where
+  parseJSON = withObject "attachment" $ \v -> do
+    t <- v .: "type"
+    if t /= ("photo" :: Text) then
+      pure $ Other $ Data.Aeson.encode v
+    else do
+      v' <- v .: "photo"
+      x <- forM vkImageSizes $ \s -> do
+        url <- v' .:? ("photo_" `mappend` pack (show s))
+        pure $ case url of
+          (Just u) -> Just (s, u)
+          Nothing  -> Nothing
+      pure $ Photo $ catMaybes x
+
 data Message = Message {
                  mBody :: Text
                , mDate :: UnixTime
                , mAddr :: MessageAddr
                , mFwd  :: [Message]
+               , mAtt  :: [Attachment]
                } deriving (Generic, Show)
 
 instance FromJSON UnixTime where
@@ -86,6 +108,7 @@ instance FromJSON Message where
                     then MessageToDialog   <$> uid
                     else MessageFromDialog <$> uid
     mFwd <- fromMaybe [] <$> v .:? "fwd_messages"
+    mAtt <- fromMaybe [] <$> v .:? "attachments"
     return $ Message {..}
 
 data Dialog = Dialog {dMess :: Message}
@@ -101,5 +124,6 @@ data Snapshot = Snapshot { sDialogs :: [(Message, [Message])]
                          } deriving (Generic, Show)
 
 instance Binary MessageAddr
+instance Binary Attachment
 instance Binary Message
 instance Binary Snapshot
