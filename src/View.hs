@@ -33,8 +33,9 @@ import Text.Blaze.Html5 as H ( Html
                              , body, hr, div, p, span, a
                              , toHtml
                              , (!)
+                             , meta
                              )
-import Text.Blaze.Html5.Attributes (src, style, href)
+import Text.Blaze.Html5.Attributes (src, style, href, charset)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
@@ -58,9 +59,13 @@ messageHtml us s (Message {..}) = do
       forM_ mFwd $ messageHtml us s
 
 dialogHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
-dialogHtml us s ms = H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
-              $ H.div ! style "width: 500px; word-wrap: break-word;"
-              $ mapM_ (messageHtml us s) ms
+dialogHtml us s ms = docTypeHtml $ do
+  H.head $ do
+    title "Dialog"
+    H.meta ! charset "UTF-8"
+  H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
+    $ H.div ! style "width: 500px; word-wrap: break-word;"
+    $ mapM_ (messageHtml us s) ms
 
 class Urlable a where
   urlFor :: a -> String
@@ -77,10 +82,13 @@ groupCaption us g = case messageGroup $ mAddr $ g of
   x@(MessageChat _) -> show x
   (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
 
-mainHtml :: [(UserId, String)] -> [Message] -> Html
-mainHtml us ms = docTypeHtml $ do
+mainHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
+mainHtml us self ms = docTypeHtml $ do
   H.head $ do
-    H.title "My title"
+    H.title $ do
+      toHtml ("Messages of " :: String)
+      toHtml $ fromMaybe "Unknown User" $ lookup self us
+    H.meta ! charset "UTF-8"
   body $ do
     forM_ ms $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ g) $ toHtml $ groupCaption us g
 
@@ -97,7 +105,7 @@ optparser = execParser opts
 main = do
   inFile <- optparser
   (Snapshot ms self users) <- decode <$> readFile inFile
-  writeFile "index.html" $ renderHtml $ mainHtml users $ map fst ms
+  writeFile "index.html" $ renderHtml $ mainHtml users self $ map fst ms
   forM_ ms $ \(d, m) -> do
     let g = messageGroup $ mAddr d
     writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate m
