@@ -20,7 +20,7 @@ import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
 import Data.VkMess (Message(..), Snapshot(..), UserId, MessageAddr(..), Dialog(..), MessageGroup(..), messageGroup, writeFile, readFile)
 
-myOptions = defaultOptions {o_max_request_rate_per_sec = 1}
+myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5}
 
 getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
 getDialogR peer from count = apiSimple
