@@ -15,30 +15,33 @@ import Data.List (nub, sortOn, groupBy, sort)
 import Data.Maybe (fromMaybe)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
-import Data.VkMess ( Message(..)
-                   , MessageAddr(..)
-                   , Snapshot(..)
-                   , MessageGroup(..)
-                   , messageGroup
-                   , isMessageTo
-                   , messageAuthor
-                   , UserId
-                   , readFile, writeFile
-                   , Attachment(..)
-                   )
+import Data.VkMess
+  ( Message(..)
+  , MessageAddr(..)
+  , Snapshot(..)
+  , MessageGroup(..)
+  , messageGroup
+  , isMessageTo
+  , messageAuthor
+  , UserId
+  , readFile, writeFile
+  , Attachment(..)
+  )
 
 import Options.Applicative
 import Data.Semigroup((<>))
 import Text.Blaze (ToValue(..))
-import Text.Blaze.Html5 as H ( Html
-                             , docTypeHtml, head, title
-                             , body, hr, div, p, span, a
-                             , toHtml
-                             , (!)
-                             , meta
-                             , pre
-                             , img
-                             )
+import Text.Blaze.Html5 as H
+  ( Html
+  , docTypeHtml, head, title
+  , body, hr, div, p, span, a
+  , toHtml
+  , (!)
+  , meta
+  , pre
+  , img
+  )
+
 import Text.Blaze.Html5.Attributes (src, style, href, charset)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 

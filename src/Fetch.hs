@@ -15,10 +15,29 @@ import qualified Data.Text.IO
 import Options.Applicative
 import Data.Semigroup((<>))
 
-import Web.VKHS (runVK, defaultOptions, apiSimple, API, MonadAPI, GenericOptions(..), UserRecord, getCurrentUser)
+import Web.VKHS
+  ( runVK
+  , defaultOptions
+  , apiSimple
+  , API
+  , MonadAPI
+  , GenericOptions(..)
+  , UserRecord
+  , getCurrentUser
+  )
 import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
-import Data.VkMess (Message(..), Snapshot(..), UserId, MessageAddr(..), Dialog(..), MessageGroup(..), messageGroup, writeFile, readFile)
+import Data.VkMess
+  ( Message(..)
+  , Snapshot(..)
+  , UserId
+  , MessageAddr(..)
+  , Dialog(..)
+  , MessageGroup(..)
+  , messageGroup
+  , writeFile
+  , readFile
+  )
 
 myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5}
 

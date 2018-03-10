@@ -2,18 +2,19 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.VkMess ( Message(..)
-                   , MessageAddr(..)
-                   , Snapshot(..)
-                   , MessageGroup(..)
-                   , messageGroup
-                   , isMessageTo
-                   , UserId
-                   , messageAuthor
-                   , Dialog(..)
-                   , readFile, writeFile
-                   , vkImageSizes, Attachment(..)
-                   ) where
+module Data.VkMess
+  ( Message(..)
+  , MessageAddr(..)
+  , Snapshot(..)
+  , MessageGroup(..)
+  , messageGroup
+  , isMessageTo
+  , UserId
+  , messageAuthor
+  , Dialog(..)
+  , readFile, writeFile
+  , vkImageSizes, Attachment(..)
+  ) where
 
 import Prelude hiding (readFile, writeFile)
 
