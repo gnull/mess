@@ -1,4 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE ApplicativeDo              #-}
+
 module Main where
 
 import Prelude hiding (writeFile)
@@ -8,7 +11,7 @@ import Control.Arrow ((***), (&&&))
 import Control.Monad (forM)
 import Data.Binary (encode, decode)
 import Data.List (groupBy, sortOn, intersperse, nub, sort)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
 
@@ -38,8 +41,6 @@ import Data.VkMess
   , writeFile
   , readFile
   )
-
-myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5}
 
 getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
 getDialogR peer from count = apiSimple
@@ -88,15 +89,38 @@ getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
 getNames us = map (fromInteger . ur_id &&& extractName) <$> getUsers us where
   extractName u = unpack (ur_first_name u) ++ " " ++ unpack (ur_last_name u)
 
-optparser :: IO FilePath
+data Options = Options
+  { outFile  :: FilePath
+  , email    :: Maybe String
+  , pass     :: Maybe String
+  , verb     :: Bool
+  }
+
+sample :: Parser Options
+sample = do
+  outFile <- argument str $
+              metavar "FILE"
+          <> help "Output file"
+  verb <- switch $
+             long "verbose"
+          <> short 'v'
+          <> help "Enable verbose output"
+  email <- optional $ strOption $
+             long "login"
+          <> short 'l'
+          <> help "User login"
+  pass <- optional $ strOption $
+             long "pass"
+          <> short 'p'
+          <> help "User password"
+  pure Options {..}
+
+optparser :: IO Options
 optparser = execParser opts
   where
-    opts = info (outFile <**> helper)
+    opts = info (sample <**> helper)
       ( fullDesc
      <> progDesc "Fetch all messages from a vk.com profile")
-    outFile = argument str $
-              metavar "FILE"
-           <> help "Output file"
 
 isDialog :: MessageGroup -> Bool
 isDialog (MessageDialog _) = True
@@ -115,7 +139,9 @@ getAllAddressees = nub . catMaybes . map f where
     (MessageFromDialog x) -> Just x
 
 main = do
-  outFile <- optparser
+  Options {..} <- optparser
+  let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbose = verb,
+    l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
   x <- runVK myOptions $ do
     ds <- getAllDialogs
     ms <- forM ds $ \d -> do
