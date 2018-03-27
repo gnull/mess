@@ -110,7 +110,7 @@ optparser = execParser opts
   where
     opts = info (inFile <**> helper)
       ( fullDesc
-     <> progDesc "View messages fetched by mess-fetch")
+     <> progDesc "Render messages fetched by mess-fetch as html")
     inFile = argument str $
               metavar "FILE"
            <> help "Input file"

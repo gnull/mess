@@ -10,11 +10,11 @@ stack install
 ## Usage
 
 ```sh
-mess-view --help && mess-fetch --help
+mess-html --help && mess-fetch --help
 
 # Download all of the messages and render them as html pages
 mess-fetch dump.bin -l address@host.com -p my-vk-password
-mess-view dump.bin
+mess-html dump.bin
 w3m index.html
 
 # Download attached photos for local viewing
