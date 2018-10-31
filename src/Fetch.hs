@@ -82,8 +82,12 @@ getAllDialogs = f 0 where
 -- users.get allows up to 1000 ids, make sure you do no pass more
 getUsers :: MonadAPI m x s => [UserId] -> API m x [UserRecord]
 getUsers [] = return []
-getUsers us = apiSimple "users.get" [("user_ids", ids)] where
-  ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
+getUsers us | length us <= 1000 =
+    let ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
+    in  apiSimple "users.get" [("user_ids", ids)]
+            | otherwise         =
+    let (l, r) = splitAt 1000 us
+    in  do { l' <- getUsers l; r' <- getUsers r; return $ l' ++ r'}
 
 getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
 getNames us = map (fromInteger . ur_id &&& extractName) <$> getUsers us where
