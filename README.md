@@ -19,6 +19,6 @@ w3m index.html
 
 # Download attached photos for local viewing
 php -S 127.0.0.1:8080
-wget -r -k http://127.0.0.1:8080/index.html
+wget -r -k -H http://127.0.0.1:8080/index.html
 w3m 127.0.0.1/index.html
 ```
