@@ -10,7 +10,7 @@ import Control.Applicative (liftA2)
 import Control.Arrow ((***), (&&&))
 import Control.Monad (forM)
 import Data.Binary (encode, decode)
-import Data.List (groupBy, sortOn, intersperse, nub, sort)
+import Data.List (groupBy, sortOn, intersperse, group, sort)
 import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
@@ -150,12 +150,17 @@ peerByMessageGroup (MessageChat x) = 2000000000 + x
 peerByMessageGroup (MessageDialog x) = x
 
 getAllAddressees :: [Message] -> [UserId]
-getAllAddressees = nub . catMaybes . map f where
-  f m = case mAddr m of
-    (MessageToChat     _) -> Nothing
-    (MessageFromChat x _) -> Just x
-    (MessageToDialog   x) -> Just x
-    (MessageFromDialog x) -> Just x
+getAllAddressees = concatMap f where
+  f m  = getAllAddressees (mFwd m)
+      ++ case mAddr m of
+           (MessageToChat     _) -> []
+           (MessageFromChat x _) -> [x]
+           (MessageToDialog   x) -> [x]
+           (MessageFromDialog x) -> [x]
+
+-- This nub is like the usual, but works in O(n log n) instead of O(n²)
+nub' :: Ord a => [a] -> [a]
+nub' = map head . group . sort
 
 main = do
   Options {..} <- optparser
@@ -169,7 +174,9 @@ main = do
     let cIds = mapMaybe (extractChat . messageGroup . mAddr . fst) ms
     chats <- map (fromInteger . cId &&& id) <$> getChats cIds
     self <- fromInteger <$> ur_id <$> getCurrentUser
-    let ids = nub $ sort $ self : (getAllAddressees $ Prelude.concat $ map snd ms)
+    let ids = nub'  $ self
+                    : (getAllAddressees $ Prelude.concat $ map snd ms)
+                   ++ (chats >>= \(_, x) -> cAdmin x : cUsers x)
     names <- getNames ids
     pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names, sChats = chats }
   case x of
