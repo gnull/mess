@@ -34,6 +34,8 @@ import Data.VkMess
   ( Message(..)
   , Snapshot(..)
   , UserId
+  , ChatId
+  , ChatRecord
   , MessageAddr(..)
   , Dialog(..)
   , MessageGroup(..)
@@ -88,6 +90,15 @@ getUsers us | length us <= 1000 =
             | otherwise         =
     let (l, r) = splitAt 1000 us
     in  do { l' <- getUsers l; r' <- getUsers r; return $ l' ++ r'}
+
+getChats :: MonadAPI m x s => [ChatId] -> API m x [ChatRecord]
+getChats [] = return []
+getChats us | length us <= 1000 =
+    let ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
+    in  apiSimple "messages.getChat" [("chat_ids", ids)]
+            | otherwise         =
+    let (l, r) = splitAt 1000 us
+    in  do { l' <- getChats l; r' <- getChats r; return $ l' ++ r'}
 
 getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
 getNames us = map (fromInteger . ur_id &&& extractName) <$> getUsers us where

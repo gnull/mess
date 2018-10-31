@@ -10,6 +10,8 @@ module Data.VkMess
   , messageGroup
   , isMessageTo
   , UserId
+  , ChatId
+  , ChatRecord(..)
   , messageAuthor
   , Dialog(..)
   , readFile, writeFile
@@ -35,6 +37,16 @@ import GHC.Generics (Generic)
 type MessageId    = Int
 type UserId       = Int
 type ChatId       = Int
+
+data ChatRecord = ChatRecord
+  { cTitle :: Text, cAdmin :: UserId, cUsers :: [UserId] } deriving (Show)
+
+instance FromJSON ChatRecord where
+  parseJSON = withObject "chat" $ \v -> do
+    cTitle <- v .: "title"
+    cAdmin <- v .: "admin_id"
+    cUsers <- v .: "users"
+    return $ ChatRecord {..}
 
 -- | Id of chat or dialog this message belongs to
 data MessageAddr = MessageToChat ChatId
