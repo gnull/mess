@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE ApplicativeDo              #-}

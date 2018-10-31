@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall  #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}

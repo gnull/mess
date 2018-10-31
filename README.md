@@ -38,6 +38,7 @@ w3m 127.0.0.1/index.html
 
 ## Roadmap
 
+  * Fix warnings!
   * Add support for new attachment types
     * Stickers — for overall prettiness of the output
     * Gifs — because they are used quite frequently
