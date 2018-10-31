@@ -50,10 +50,11 @@ import Text.Blaze.Html5.Attributes (src, style, href, charset)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
-addrHtml us s x = H.span . toHtml
+addrHtml us s x = H.span . (a ! href url) . toHtml
                 $ fromMaybe "Unknown User"
                 $ flip lookup us
                 $ messageAuthor s x where
+  url = toValue $ "https://vk.com/id" ++ show (messageAuthor s x)
 
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
