@@ -9,10 +9,11 @@ import Control.Monad (forM_)
 import Data.Binary (encode, decode)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 (unpack)
+import qualified Data.Text (unpack)
 
 import Data.Function (on)
 import Data.List (nub, sortOn, groupBy, sort)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
@@ -24,6 +25,8 @@ import Data.VkMess
   , isMessageTo
   , messageAuthor
   , UserId
+  , ChatId
+  , ChatRecord(..)
   , readFile, writeFile
   , Attachment(..)
   )
@@ -90,20 +93,21 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-groupCaption :: [(UserId, String)] -> Message -> String
-groupCaption us g = case messageGroup $ mAddr $ g of
-  x@(MessageChat _) -> show x
+groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> String
+groupCaption us cs g = case messageGroup $ mAddr $ g of
+  (MessageChat x) -> Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
   (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
 
-mainHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
-mainHtml us self ms = docTypeHtml $ do
+mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
+mainHtml us cs self ms = docTypeHtml $ do
   H.head $ do
     H.title $ do
-      toHtml ("Messages of " :: String)
+      toHtml ("IM «" :: String)
       toHtml $ fromMaybe "Unknown User" $ lookup self us
+      toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
   body $ do
-    forM_ ms $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ g) $ toHtml $ groupCaption us g
+    forM_ ms $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ g) $ toHtml $ groupCaption us cs g
 
 optparser :: IO FilePath
 optparser = execParser opts
@@ -117,8 +121,8 @@ optparser = execParser opts
 
 main = do
   inFile <- optparser
-  (Snapshot ms self users _) <- decode <$> readFile inFile
-  writeFile "index.html" $ renderHtml $ mainHtml users self $ map fst ms
+  (Snapshot ms self users chats) <- decode <$> readFile inFile
+  writeFile "index.html" $ renderHtml $ mainHtml users chats self $ map fst ms
   forM_ ms $ \(d, m) -> do
     let g = messageGroup $ mAddr d
     writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate m
