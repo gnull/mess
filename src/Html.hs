@@ -117,7 +117,7 @@ optparser = execParser opts
 
 main = do
   inFile <- optparser
-  (Snapshot ms self users) <- decode <$> readFile inFile
+  (Snapshot ms self users _) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml users self $ map fst ms
   forM_ ms $ \(d, m) -> do
     let g = messageGroup $ mAddr d

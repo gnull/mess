@@ -11,7 +11,7 @@ import Control.Arrow ((***), (&&&))
 import Control.Monad (forM)
 import Data.Binary (encode, decode)
 import Data.List (groupBy, sortOn, intersperse, nub, sort)
-import Data.Maybe (catMaybes, fromMaybe)
+import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
 import Data.Text (Text, pack, unpack, concat)
 import qualified Data.Text.IO
 
@@ -35,7 +35,7 @@ import Data.VkMess
   , Snapshot(..)
   , UserId
   , ChatId
-  , ChatRecord
+  , ChatRecord(..)
   , MessageAddr(..)
   , Dialog(..)
   , MessageGroup(..)
@@ -141,6 +141,10 @@ isDialog :: MessageGroup -> Bool
 isDialog (MessageDialog _) = True
 isDialog _ = False
 
+extractChat :: MessageGroup -> Maybe ChatId
+extractChat (MessageChat x) = Just x
+extractChat _ = Nothing
+
 peerByMessageGroup :: MessageGroup -> Int
 peerByMessageGroup (MessageChat x) = 2000000000 + x
 peerByMessageGroup (MessageDialog x) = x
@@ -162,10 +166,12 @@ main = do
     ms <- forM ds $ \d -> do
       ms <- getWholeDialog $ peerByMessageGroup $ messageGroup $ mAddr d
       pure (d, ms)
+    let cIds = mapMaybe (extractChat . messageGroup . mAddr . fst) ms
+    chats <- map (fromInteger . cId &&& id) <$> getChats cIds
     self <- fromInteger <$> ur_id <$> getCurrentUser
     let ids = nub $ sort $ self : (getAllAddressees $ Prelude.concat $ map snd ms)
     names <- getNames ids
-    pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names }
+    pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names, sChats = chats }
   case x of
     (Left e) -> putStrLn $ show e
     (Right s) -> writeFile outFile $ encode s

@@ -39,10 +39,15 @@ type UserId       = Int
 type ChatId       = Int
 
 data ChatRecord = ChatRecord
-  { cTitle :: Text, cAdmin :: UserId, cUsers :: [UserId] } deriving (Show)
+  { cId :: Integer
+  , cTitle :: Text
+  , cAdmin :: UserId
+  , cUsers :: [UserId]
+  } deriving (Generic, Show)
 
 instance FromJSON ChatRecord where
   parseJSON = withObject "chat" $ \v -> do
+    cId    <- v .: "id"
     cTitle <- v .: "title"
     cAdmin <- v .: "admin_id"
     cUsers <- v .: "users"
@@ -134,9 +139,11 @@ instance FromJSON Dialog where
 data Snapshot = Snapshot { sDialogs :: [(Message, [Message])]
                          , sSelf :: UserId
                          , sUsers :: [(UserId, String)]
+                         , sChats :: [(ChatId, ChatRecord)]
                          } deriving (Generic, Show)
 
 instance Binary MessageAddr
 instance Binary Attachment
 instance Binary Message
+instance Binary ChatRecord
 instance Binary Snapshot
