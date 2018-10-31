@@ -100,7 +100,7 @@ instance Urlable MessageGroup where
 
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> String
 groupCaption us cs g = case messageGroup $ mAddr $ g of
-  (MessageChat x) -> Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+  (MessageChat x) -> ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
   (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
 
 mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
