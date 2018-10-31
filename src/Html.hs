@@ -74,11 +74,16 @@ messageHtml us s (Message {..}) = do
     H.div ! style "padding-left: 10px;" $
       forM_ mFwd $ messageHtml us s
 
-dialogHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
-dialogHtml us s ms = docTypeHtml $ do
+dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
+dialogHtml us cs s ms = docTypeHtml $ do
   H.head $ do
-    title "Dialog"
+    title $ toHtml
+          $ let addressee = case messageGroup $ mAddr $ Prelude.head ms of
+                     (MessageChat x) -> Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+                     (MessageDialog x) -> fromMaybe "Unknown User" $ lookup x us
+            in "«" ++ addressee ++ "» — " ++ fromJust (lookup s us)
     H.meta ! charset "UTF-8"
+
   H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
     $ H.div ! style "width: 700px; word-wrap: break-word; margin: auto;"
     $ mapM_ (messageHtml us s) ms
@@ -125,4 +130,4 @@ main = do
   writeFile "index.html" $ renderHtml $ mainHtml users chats self $ map fst ms
   forM_ ms $ \(d, m) -> do
     let g = messageGroup $ mAddr d
-    writeFile (urlFor g) $ renderHtml $ dialogHtml users self $ sortOn mDate m
+    writeFile (urlFor g) $ renderHtml $ dialogHtml users chats self $ sortOn mDate m
