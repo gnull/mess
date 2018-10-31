@@ -102,7 +102,7 @@ mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] 
 mainHtml us cs self ms = docTypeHtml $ do
   H.head $ do
     H.title $ do
-      toHtml ("IM «" :: String)
+      toHtml ("«" :: String)
       toHtml $ fromMaybe "Unknown User" $ lookup self us
       toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
