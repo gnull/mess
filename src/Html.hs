@@ -13,7 +13,8 @@ import qualified Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.Text (unpack)
 
 import Data.Function (on)
-import Data.List (nub, sortOn, groupBy, sort)
+import Data.List (nub, sortOn, groupBy, sort, intersperse)
+import Data.Foldable (fold)
 import Data.Maybe (fromMaybe, fromJust)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
@@ -101,12 +102,15 @@ instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> Html
-groupCaption us cs g = H.div
-                   $ a ! hrefFor (messageGroup $ mAddr $ g)
-                   $ toHtml
-                   $ case messageGroup $ mAddr $ g of
-  (MessageChat x) -> ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
-  (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
+groupCaption us cs g = H.div $ case messageGroup $ mAddr $ g of
+  (MessageChat x) -> let tit = wrap $ ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+                         f u = toHtml $ fromMaybe "Unknown User" $ lookup u us
+                     in     tit
+                         <> toHtml (" (" :: String)
+                         <> (fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
+                         <> toHtml (")" :: String)
+  (MessageDialog x) -> wrap $ fromMaybe "Unknown user" $ lookup x us
+  where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
 mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
 mainHtml us cs self ms = docTypeHtml $ do
