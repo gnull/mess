@@ -71,7 +71,7 @@ messageHtml us s (Message {..}) = do
       addrHtml us s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
       unixTimeHtml mDate
-    p $ toHtml mBody
+    p ! style "white-space: pre-wrap;" $ toHtml mBody
     H.div $ mapM_ attachmentHtml mAtt
     H.div ! style "padding-left: 10px;" $
       forM_ mFwd $ messageHtml us s
