@@ -100,8 +100,11 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> String
-groupCaption us cs g = case messageGroup $ mAddr $ g of
+groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> Html
+groupCaption us cs g = H.div
+                   $ a ! hrefFor (messageGroup $ mAddr $ g)
+                   $ toHtml
+                   $ case messageGroup $ mAddr $ g of
   (MessageChat x) -> ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
   (MessageDialog x) -> fromMaybe "Unknown user" $ lookup x us
 
@@ -114,7 +117,7 @@ mainHtml us cs self ms = docTypeHtml $ do
       toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
   body $ do
-    forM_ ms $ \g -> H.div $ a ! hrefFor (messageGroup $ mAddr $ g) $ toHtml $ groupCaption us cs g
+    forM_ ms $ groupCaption us cs
 
 optparser :: IO FilePath
 optparser = execParser opts
