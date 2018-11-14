@@ -34,7 +34,7 @@ import Data.VkMess
 
 import Options.Applicative
 import Data.Semigroup((<>))
-import Text.Blaze (ToValue(..))
+import Text.Blaze (ToValue(..), Attribute)
 import Text.Blaze.Html5 as H
   ( Html
   , docTypeHtml, head, title
@@ -93,8 +93,7 @@ dialogHtml us cs s ms = docTypeHtml $ do
 class Urlable a where
   urlFor :: a -> String
 
--- Type returned by this function is not exported by Blaze, therefore this
--- function has no signature
+hrefFor :: MessageGroup -> Attribute
 hrefFor = href . toValue . urlFor
 
 instance Urlable MessageGroup where
