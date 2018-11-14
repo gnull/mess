@@ -41,6 +41,7 @@ import Text.Blaze.Html5 as H
   )
 
 import Text.Blaze.Html5.Attributes (src, style, href, charset)
+import Text.Blaze.Internal (stringValue)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
 addrHtml us s x = H.span . (a ! href url) . toHtml
@@ -56,6 +57,7 @@ attachmentHtml :: Attachment -> Html
 attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
 attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! style "height: auto; max-width: 100%;" ! src url
   where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
+attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
 
 messageStyle :: Bool -> Attribute
 messageStyle isTo =
