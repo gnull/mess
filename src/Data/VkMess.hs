@@ -85,6 +85,7 @@ messageGroup (MessageFromDialog x) = MessageDialog x
 data Attachment = Photo [(Int, FilePath)]
                 | Sticker FilePath
                 | Link FilePath Text Text -- url title description
+                | AudioMsg FilePath
                 | Other ByteString deriving (Generic, Show)
 
 vkImageSizes :: [Int]
@@ -93,6 +94,7 @@ vkImageSizes = [2560, 1280, 807, 604, 130, 75]
 instance FromJSON Attachment where
   parseJSON = withObject "attachment" $ \v -> do
     t <- v .: "type"
+    let other = pure $ Other $ Data.Aeson.encode v
     case t :: Text of
       "photo" -> do
         v' <- v .: "photo"
@@ -107,7 +109,17 @@ instance FromJSON Attachment where
       "link" -> do
         v' <- v .: "link"
         Link <$> v' .: "url" <*> v' .: "title" <*> (fromMaybe "" <$> v' .:? "description")
-      _ -> pure $ Other $ Data.Aeson.encode v
+      "doc" -> do
+          v' <- v .: "doc"
+          p <- v' .:? "preview"
+          case p of
+              Nothing -> other
+              Just p' -> do
+                  a <- p' .:? "audio_msg"
+                  case a of
+                      Nothing -> other
+                      Just a' -> AudioMsg <$> a' .: "link_mp3"
+      _ -> other
 
 data Message = Message {
                  mBody :: Text

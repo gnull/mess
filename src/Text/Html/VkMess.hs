@@ -38,9 +38,11 @@ import Text.Blaze.Html5 as H
   , meta
   , pre
   , img
+  , audio
+  , source
   )
 
-import Text.Blaze.Html5.Attributes (src, style, href, charset)
+import Text.Blaze.Html5.Attributes (src, style, href, charset, controls, type_)
 import Text.Blaze.Internal (stringValue)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
@@ -60,6 +62,10 @@ attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
 attachmentHtml (Link u t d) = H.span $ do
   H.a ! (href $ stringValue u) $ toHtml t
   H.p $ toHtml d
+attachmentHtml (AudioMsg u) = H.span
+                            $ H.audio ! controls ""
+                            $ do source ! src (stringValue u) ! type_ "audio/mpeg"
+                                 toHtml ("Your browser does not support the audio element." :: String)
 attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
 
 messageStyle :: Bool -> Attribute
