@@ -5,12 +5,11 @@
 module Text.Html.VkMess where
     
 import Control.Monad (forM_)
-import Data.Binary (decode)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.Text (unpack)
 
-import Data.List (sortOn, sort, intersperse)
+import Data.List (sort, intersperse)
 import Data.Foldable (fold)
 import Data.Maybe (fromMaybe, fromJust)
 
@@ -18,7 +17,6 @@ import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
   ( Message(..)
   , MessageAddr(..)
-  , Snapshot(..)
   , MessageGroup(..)
   , messageGroup
   , isMessageTo
@@ -26,11 +24,9 @@ import Data.VkMess
   , UserId
   , ChatId
   , ChatRecord(..)
-  , readFile, writeFile
   , Attachment(..)
   )
 
-import Options.Applicative
 import Data.Semigroup((<>))
 import Text.Blaze (ToValue(..), Attribute)
 import Text.Blaze.Html5 as H
@@ -45,7 +41,6 @@ import Text.Blaze.Html5 as H
   )
 
 import Text.Blaze.Html5.Attributes (src, style, href, charset)
-import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
 addrHtml us s x = H.span . (a ! href url) . toHtml
