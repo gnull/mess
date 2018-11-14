@@ -82,7 +82,9 @@ messageGroup (MessageFromChat _ x) = MessageChat x
 messageGroup (MessageToDialog   x) = MessageDialog x
 messageGroup (MessageFromDialog x) = MessageDialog x
 
-data Attachment = Photo [(Int, FilePath)] | Other ByteString deriving (Generic, Show)
+data Attachment = Photo [(Int, FilePath)]
+                | Sticker FilePath
+                | Other ByteString deriving (Generic, Show)
 
 vkImageSizes :: [Int]
 vkImageSizes = [2560, 1280, 807, 604, 130, 75]
@@ -90,16 +92,20 @@ vkImageSizes = [2560, 1280, 807, 604, 130, 75]
 instance FromJSON Attachment where
   parseJSON = withObject "attachment" $ \v -> do
     t <- v .: "type"
-    if t /= ("photo" :: Text) then
-      pure $ Other $ Data.Aeson.encode v
-    else do
-      v' <- v .: "photo"
-      x <- forM vkImageSizes $ \s -> do
-        url <- v' .:? ("photo_" `mappend` pack (show s))
-        pure $ case url of
-          (Just u) -> Just (s, u)
-          Nothing  -> Nothing
-      pure $ Photo $ catMaybes x
+    case t :: Text of
+      "photo" -> do
+        v' <- v .: "photo"
+        x <- forM vkImageSizes $ \s -> do
+          url <- v' .:? ("photo_" `mappend` pack (show s))
+          pure $ case url of
+            (Just u) -> Just (s, u)
+            Nothing  -> Nothing
+        pure $ Photo $ catMaybes x
+      "sticker" -> do
+        v' <- v .: "sticker"
+        l <- forM [256, 128, 64, 512 :: Int] $ \s -> v' .:? ("photo_" `mappend` pack (show s))
+        return $ Sticker $ head $ catMaybes l
+      _ -> pure $ Other $ Data.Aeson.encode v
 
 data Message = Message {
                  mBody :: Text
