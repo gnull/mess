@@ -64,9 +64,16 @@ attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! st
 attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! style "height: auto; max-width: 100%;" ! src url
   where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
 
+messageStyle :: Bool -> Attribute
+messageStyle isTo =
+            style $ mappend "margin: 1px; padding: 2px;"
+                  $ if isTo
+                    then "border: 1px dashed black; background-color: #fff;"
+                    else "border: 1px solid black; background-color: #ddd;"
+
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
-  H.div ! style ((if isMessageTo mAddr then "border: 1px dashed black; background-color: #fff;" else "border: 1px solid black; background-color: #ddd;") `mappend` "margin: 1px; padding: 2px;") $ do
+  H.div ! messageStyle (isMessageTo mAddr) $ do
     H.div $ do
       addrHtml us s mAddr
       H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
