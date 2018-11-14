@@ -84,6 +84,7 @@ messageGroup (MessageFromDialog x) = MessageDialog x
 
 data Attachment = Photo [(Int, FilePath)]
                 | Sticker FilePath
+                | Link FilePath Text Text -- url title description
                 | Other ByteString deriving (Generic, Show)
 
 vkImageSizes :: [Int]
@@ -105,6 +106,9 @@ instance FromJSON Attachment where
         v' <- v .: "sticker"
         l <- forM [256, 128, 64, 512 :: Int] $ \s -> v' .:? ("photo_" `mappend` pack (show s))
         return $ Sticker $ head $ catMaybes l
+      "link" -> do
+        v' <- v .: "link"
+        Link <$> v' .: "url" <*> v' .: "title" <*> (fromMaybe "" <$> v' .:? "description")
       _ -> pure $ Other $ Data.Aeson.encode v
 
 data Message = Message {
