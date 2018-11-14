@@ -38,18 +38,11 @@ w3m 127.0.0.1/index.html
 
 ## Roadmap
 
-  * Fix warnings!
   * Add support for new attachment types
     * Stickers — for overall prettiness of the output
     * Gifs — because they are used quite frequently
     * Posts — the same as Gifs
-  * Add some statistics on chats to the `index.html` page, like number of
-    messages, percent of sent/received messages, number of messages forwarded
-    to/from chat.
-  * Add some inter-references between generated pages.
-    * For each forwarded message for which its originating chat is known add a
-      `href` to its original.
-    * For each photo add `href`s to the previous and next ones in current chat
-      for easier navigation.
-  * Generate some pages that would aggregate photos included in chats. (E.g for
-    each chat add a page containing its photos.)
+  * Add a tool for dynamically viewing the dump file obtained with `mess-fetch`.
+    This tool should perform flexible filtering of dialogs and messages, display
+    various statistics, show attachments and various inter-references between
+    pages.
