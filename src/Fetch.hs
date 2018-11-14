@@ -7,14 +7,12 @@ module Main where
 
 import Prelude hiding (writeFile)
 
-import Control.Applicative (liftA2)
-import Control.Arrow ((***), (&&&))
+import Control.Arrow ((&&&))
 import Control.Monad (forM)
-import Data.Binary (encode, decode)
-import Data.List (groupBy, sortOn, intersperse, group, sort)
-import Data.Maybe (catMaybes, fromMaybe, mapMaybe)
-import Data.Text (Text, pack, unpack, concat)
-import qualified Data.Text.IO
+import Data.Binary (encode)
+import Data.List (intersperse, group, sort)
+import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Text (pack, unpack, concat)
 
 import Options.Applicative
 import Data.Semigroup((<>))
@@ -42,7 +40,6 @@ import Data.VkMess
   , MessageGroup(..)
   , messageGroup
   , writeFile
-  , readFile
   )
 
 getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
@@ -163,6 +160,7 @@ getAllAddressees = concatMap f where
 nub' :: Ord a => [a] -> [a]
 nub' = map head . group . sort
 
+main :: IO ()
 main = do
   Options {..} <- optparser
   let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbose = verb,

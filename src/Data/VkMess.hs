@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall  #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans  #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -23,19 +23,17 @@ import Prelude hiding (readFile, writeFile)
 
 import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
 import qualified Data.Aeson (encode)
-import qualified Data.ByteString.Char8 (unpack)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy (readFile, writeFile)
 import Data.Maybe (fromMaybe, catMaybes)
 import Control.Monad (forM)
-import Data.Text (Text, unpack, pack)
-import Data.UnixTime (fromEpochTime, UnixTime, formatUnixTimeGMT, webDateFormat)
+import Data.Text (Text, pack)
+import Data.UnixTime (fromEpochTime, UnixTime)
 import Foreign.C.Types (CTime(CTime))
 
 import Data.Binary
 import GHC.Generics (Generic)
 
-type MessageId    = Int
 type UserId       = Int
 type ChatId       = Int
 
@@ -86,7 +84,9 @@ messageGroup (MessageFromDialog x) = MessageDialog x
 
 data Attachment = Photo [(Int, FilePath)] | Other ByteString deriving (Generic, Show)
 
+vkImageSizes :: [Int]
 vkImageSizes = [2560, 1280, 807, 604, 130, 75]
+
 instance FromJSON Attachment where
   parseJSON = withObject "attachment" $ \v -> do
     t <- v .: "type"

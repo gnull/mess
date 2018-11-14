@@ -7,13 +7,12 @@ module Main where
 import Prelude hiding (readFile, putStrLn, writeFile)
 
 import Control.Monad (forM_)
-import Data.Binary (encode, decode)
+import Data.Binary (decode)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.Text (unpack)
 
-import Data.Function (on)
-import Data.List (nub, sortOn, groupBy, sort, intersperse)
+import Data.List (sortOn, sort, intersperse)
 import Data.Foldable (fold)
 import Data.Maybe (fromMaybe, fromJust)
 
@@ -39,7 +38,7 @@ import Text.Blaze (ToValue(..))
 import Text.Blaze.Html5 as H
   ( Html
   , docTypeHtml, head, title
-  , body, hr, div, p, span, a
+  , body, div, p, span, a
   , toHtml
   , (!)
   , meta
@@ -133,6 +132,7 @@ optparser = execParser opts
               metavar "FILE"
            <> help "Input file"
 
+main :: IO ()
 main = do
   inFile <- optparser
   (Snapshot ms self users chats) <- decode <$> readFile inFile
