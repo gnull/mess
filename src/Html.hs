@@ -92,7 +92,6 @@ dialogHtml us cs s ms = docTypeHtml $ do
                      (MessageDialog x) -> fromMaybe "Unknown User" $ lookup x us
             in "«" ++ addressee ++ "» — " ++ fromJust (lookup s us)
     H.meta ! charset "UTF-8"
-
   H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
     $ H.div ! style "width: 700px; word-wrap: break-word; margin: auto;"
     $ mapM_ (messageHtml us s) ms
