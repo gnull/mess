@@ -54,13 +54,13 @@ unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
 attachmentHtml :: Attachment -> Html
-attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
 attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! style "height: auto; max-width: 100%;" ! src url
   where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
 attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
 attachmentHtml (Link u t d) = H.span $ do
   H.a ! (href $ stringValue u) $ toHtml t
   H.p $ toHtml d
+attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
 
 messageStyle :: Bool -> Attribute
 messageStyle isTo =

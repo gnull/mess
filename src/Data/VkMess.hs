@@ -98,9 +98,7 @@ instance FromJSON Attachment where
         v' <- v .: "photo"
         x <- forM vkImageSizes $ \s -> do
           url <- v' .:? ("photo_" `mappend` pack (show s))
-          pure $ case url of
-            (Just u) -> Just (s, u)
-            Nothing  -> Nothing
+          pure $ (,) s <$> url
         pure $ Photo $ catMaybes x
       "sticker" -> do
         v' <- v .: "sticker"
