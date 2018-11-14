@@ -1,54 +1,32 @@
 {-# OPTIONS_GHC -Wall  #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
-import Prelude hiding (readFile, putStrLn, writeFile)
+import Prelude hiding (readFile, writeFile)
 
 import Control.Monad (forM_)
 import Data.Binary (decode)
-import Data.ByteString.Char8 (unpack)
-import qualified Data.ByteString.Lazy.Char8 (unpack)
-import qualified Data.Text (unpack)
 
-import Data.List (sortOn, sort, intersperse)
-import Data.Foldable (fold)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.List (sortOn)
 
-import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
   ( Message(..)
-  , MessageAddr(..)
   , Snapshot(..)
-  , MessageGroup(..)
   , messageGroup
-  , isMessageTo
-  , messageAuthor
-  , UserId
-  , ChatId
-  , ChatRecord(..)
-  , readFile, writeFile
-  , Attachment(..)
+  , readFile
+  , writeFile
   )
 
 import Options.Applicative
 import Data.Semigroup((<>))
-import Text.Blaze (ToValue(..), Attribute)
-import Text.Blaze.Html5 as H
-  ( Html
-  , docTypeHtml, head, title
-  , body, div, p, span, a
-  , toHtml
-  , (!)
-  , meta
-  , pre
-  , img
-  )
 
-import Text.Blaze.Html5.Attributes (src, style, href, charset)
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Html.VkMess
+  ( mainHtml
+  , urlFor
+  , dialogHtml
+  )
 
 optparser :: IO FilePath
 optparser = execParser opts
