@@ -42,7 +42,7 @@ main :: IO ()
 main = do
   inFile <- optparser
   (Snapshot ms self users chats) <- decode <$> readFile inFile
-  writeFile "index.html" $ renderHtml $ mainHtml users chats self $ map fst ms
+  writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
   forM_ ms $ \(d, m) -> do
     let g = messageGroup $ mAddr d
     writeFile (urlFor g) $ renderHtml $ dialogHtml users chats self $ sortOn mDate m

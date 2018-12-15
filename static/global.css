@@ -61,6 +61,14 @@ th {
   width: 200px;
 }
 
+.statsColumn {
+  width: 250px;
+}
+
+.timeColumn {
+  width: 200px;
+}
+
 .usersColumn {
   width: 400px;
 }

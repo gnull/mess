@@ -26,6 +26,7 @@ import Data.VkMess
   , ChatId
   , ChatRecord(..)
   , Attachment(..)
+  , DialogStats(..), getDialogStats
   )
 import Text.Html.VkMess.Static (globalCSS)
 
@@ -39,6 +40,7 @@ import Text.Blaze.Html5 as H
   , preEscapedToHtml
   , style
   , table, tr, td, th
+  , ul, li
   , (!)
   , meta
   , pre
@@ -60,6 +62,9 @@ addrHtml us s x = H.span . (a ! href url) . toHtml
 
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
+
+shortUnixTimeHtml :: UnixTime -> Html
+shortUnixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT "%b %Y"
 
 attachmentHtml :: Attachment -> Html
 attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! class_ "attachmentPhoto" ! src url
@@ -116,6 +121,24 @@ instance Urlable MessageGroup where
 spoiler :: String -> Html -> Html
 spoiler s b = H.details $ H.summary (toHtml s) <> b
 
+-- An 📎
+clippyEmoji :: Html
+clippyEmoji = preEscapedToHtml ("&#x1F4CE;" :: String)
+
+-- An ✉️
+envelopeEmoji :: Html
+envelopeEmoji = preEscapedToHtml ("&#x1F4E8;" :: String)
+
+-- TODO: do something with «usersSeen ds» here
+statsHtml :: DialogStats -> Html
+statsHtml ds = H.ul $ do
+    H.li $ do
+      clippyEmoji
+      toHtml $ ": " ++ show (attachmentCount ds)
+    H.li $ do
+      envelopeEmoji
+      toHtml $ ": " ++ show (sentCount ds) ++ "/" ++ show (totalCount ds)
+
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
 groupCaption us cs g =  case messageGroup $ mAddr $ g of
   (MessageChat x) -> let tit = wrap $ ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
@@ -124,8 +147,8 @@ groupCaption us cs g =  case messageGroup $ mAddr $ g of
   (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
-mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
-mainHtml us cs self ms = docTypeHtml $ do
+mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Message, [Message])] -> Html
+mainHtml us cs self items = docTypeHtml $ do
   H.head $ do
     H.title $ do
       toHtml ("«" :: String)
@@ -136,6 +159,15 @@ mainHtml us cs self ms = docTypeHtml $ do
   body $ H.table $ do
     tr $ do
       H.th ! class_ "captionColumn" $ mempty
+      H.th ! class_ "statsColumn" $ mempty
+      H.th ! class_ "datesColumn" $ mempty
       H.th ! class_ "usersColumn" $ mempty
-    forM_ ms $ row . groupCaption us cs
-  where row (x, y) = H.tr $ H.td x <> H.td y
+    forM_ items $ \(m, ms) -> H.tr $ do
+      let ds = getDialogStats ms
+      let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
+      let end = shortUnixTimeHtml $ mDate $ last ms
+      let (cap, det) = groupCaption us cs m
+      H.td cap
+      H.td $ statsHtml ds
+      H.td $ start <> toHtml (" … " :: String) <> end
+      H.td det

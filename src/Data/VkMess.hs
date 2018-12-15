@@ -17,6 +17,7 @@ module Data.VkMess
   , Dialog(..)
   , readFile, writeFile
   , vkImageSizes, Attachment(..)
+  , DialogStats(..), getDialogStats
   ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -26,6 +27,9 @@ import qualified Data.Aeson (encode)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy (readFile, writeFile)
 import Data.Maybe (fromMaybe, catMaybes)
+import Data.Bool (bool)
+import Data.Monoid (Sum(..))
+import Data.Set (Set, singleton, empty)
 import Control.Monad (forM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -168,3 +172,35 @@ instance Binary Attachment
 instance Binary Message
 instance Binary ChatRecord
 instance Binary Snapshot
+
+data DialogStats = DialogStats
+                  { attachmentCount :: Int
+                  , sentCount :: Int
+                  , totalCount :: Int
+                  , usersSeen :: Set UserId
+                  }
+
+instance Monoid DialogStats where
+    DialogStats a b c d `mappend` DialogStats a' b' c' d' =
+                                  DialogStats (getSum $ Sum a `mappend` Sum a')
+                                              (getSum $ Sum b `mappend` Sum b')
+                                              (getSum $ Sum c `mappend` Sum c')
+                                              (d `mappend` d')
+    mempty = DialogStats (getSum mempty)
+                         (getSum mempty)
+                         (getSum mempty)
+                         mempty
+
+getDialogStats :: [Message] -> DialogStats
+getDialogStats = foldMap f
+  where
+    f = do
+      attachmentCount <- length <$> mAtt
+      sentCount <- bool 0 1 <$> isMessageTo <$> mAddr
+      let totalCount = 1
+      usersSeen <- seen <$> mAddr
+      sub <- getDialogStats <$> mFwd
+      return $ mappend sub $ DialogStats {..}
+    seen (MessageFromChat x _) = singleton x
+    seen (MessageFromDialog x) = singleton x
+    seen _ = empty
