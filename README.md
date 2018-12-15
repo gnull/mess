@@ -54,6 +54,7 @@ w3m 127.0.0.1/index.html
   * Add a tool for dynamically viewing the dump file obtained with `mess-fetch`.
     This tool should perform flexible filtering of dialogs and messages, display
     statistics, show attachments, and various inter-references between pages.
+    (This tool might benefit from caching query results.)
   * Add a tool for dowloading attachments which would be more suited for this
     purpose than Wget. It should support parallel dowload of attachments and allow
     to reuse attachments dowloaded by previous runs of this program (and probably
