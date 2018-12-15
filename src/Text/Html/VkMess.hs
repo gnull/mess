@@ -133,4 +133,3 @@ mainHtml us cs self ms = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   body $ do
     forM_ ms $ groupCaption us cs
-
