@@ -1,0 +1,51 @@
+.attachmentPhoto {
+  height: auto;
+  max-width: 100%;
+}
+
+.attachmentOther {
+  border: 1px solid grey;
+}
+
+pre {
+  white-space: pre-wrap;
+}
+
+.gap {
+  display: inline-block;
+  width: 0.5cm;
+}
+
+p {
+  white-space: pre-wrap;
+}
+
+.forwardedContainer {
+  padding-left: 10px;
+}
+
+.dialogContainer {
+  width: 700px;
+  word-wrap: break-word;
+  margin: auto;
+}
+
+.dialogBody {
+  font-family: Verdana, Sans-Serif;
+  font-size: 14.4px;
+}
+
+.messageContainer {
+  margin: 1px;
+  padding: 2px;
+}
+
+.messageTo {
+  border: 1px dashed black;
+  background-color: #fff;
+}
+
+.messageFrom {
+  border: 1px solid black;
+  background-color: #ddd;
+}

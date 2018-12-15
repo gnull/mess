@@ -31,7 +31,7 @@ executable mess-html
   hs-source-dirs:      src
   main-is:             Html.hs
   default-language:    Haskell2010
-  other-modules:       Data.VkMess Text.Html.VkMess
+  other-modules:       Data.VkMess Text.Html.VkMess Text.Html.VkMess.Static
   build-depends:       base >= 4.7 && < 5
                      , text >= 1.2.2
                      , unix-time >= 0.3.7
@@ -41,3 +41,4 @@ executable mess-html
                      , optparse-applicative >= 0.13
                      , blaze-html >= 0.9
                      , blaze-markup >= 0.8
+                     , file-embed >= 0.0

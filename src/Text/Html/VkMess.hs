@@ -10,6 +10,7 @@ import qualified Data.ByteString.Lazy.Char8 (unpack)
 import qualified Data.Text (unpack)
 
 import Data.List (sort, intersperse)
+import Data.Bool (bool)
 import Data.Foldable (fold)
 import Data.Maybe (fromMaybe, fromJust)
 
@@ -26,6 +27,7 @@ import Data.VkMess
   , ChatRecord(..)
   , Attachment(..)
   )
+import Text.Html.VkMess.Static (globalCSS)
 
 import Data.Semigroup((<>))
 import Text.Blaze (ToValue(..), Attribute)
@@ -34,6 +36,8 @@ import Text.Blaze.Html5 as H
   , docTypeHtml, head, title
   , body, div, p, span, a
   , toHtml
+  , preEscapedToHtml
+  , style
   , (!)
   , meta
   , pre
@@ -42,7 +46,7 @@ import Text.Blaze.Html5 as H
   , source
   )
 
-import Text.Blaze.Html5.Attributes (src, style, href, charset, controls, type_)
+import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
 import Text.Blaze.Internal (stringValue)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
@@ -56,7 +60,7 @@ unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
 attachmentHtml :: Attachment -> Html
-attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! style "height: auto; max-width: 100%;" ! src url
+attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! class_ "attachmentPhoto" ! src url
   where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
 attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
 attachmentHtml (Link u t d) = H.span $ do
@@ -66,25 +70,22 @@ attachmentHtml (AudioMsg u) = H.span
                             $ H.audio ! controls ""
                             $ do source ! src (stringValue u) ! type_ "audio/mpeg"
                                  toHtml ("Your browser does not support the audio element." :: String)
-attachmentHtml (Other x) = H.span ! style "border: 1px solid grey;" $ H.pre ! style "white-space: pre-wrap;" $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
+attachmentHtml (Other x) = H.span ! class_ "attachmentOther" $ H.pre $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
 
 messageStyle :: Bool -> Attribute
 messageStyle isTo =
-            style $ mappend "margin: 1px; padding: 2px;"
-                  $ if isTo
-                    then "border: 1px dashed black; background-color: #fff;"
-                    else "border: 1px solid black; background-color: #ddd;"
+  class_ $ "messageContainer " `mappend` bool "messageFrom" "messageTo" isTo
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
   H.div ! messageStyle (isMessageTo mAddr) $ do
     H.div $ do
       addrHtml us s mAddr
-      H.span ! style "display: inline-block; width: 0.5cm;" $ toHtml ("" :: String)
+      H.span ! class_ "gap" $ toHtml ("" :: String)
       unixTimeHtml mDate
-    p ! style "white-space: pre-wrap;" $ toHtml mBody
+    p $ toHtml mBody
     H.div $ mapM_ attachmentHtml mAtt
-    H.div ! style "padding-left: 10px;" $
+    H.div ! class_ "forwardedContainer" $
       forM_ mFwd $ messageHtml us s
 
 dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
@@ -96,8 +97,9 @@ dialogHtml us cs s ms = docTypeHtml $ do
                      (MessageDialog x) -> fromMaybe "Unknown User" $ lookup x us
             in "«" ++ addressee ++ "» — " ++ fromJust (lookup s us)
     H.meta ! charset "UTF-8"
-  H.body ! style "font-family: Verdana, Sans-Serif; font-size: 14.4px;"
-    $ H.div ! style "width: 700px; word-wrap: break-word; margin: auto;"
+    H.style $ preEscapedToHtml globalCSS
+  H.body ! class_ "dialogBody"
+    $ H.div ! class_ "dialogContainer"
     $ mapM_ (messageHtml us s) ms
 
 class Urlable a where
@@ -128,6 +130,7 @@ mainHtml us cs self ms = docTypeHtml $ do
       toHtml $ fromMaybe "Unknown User" $ lookup self us
       toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
+    H.style $ preEscapedToHtml globalCSS
   body $ do
     forM_ ms $ groupCaption us cs
 
