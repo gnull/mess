@@ -127,7 +127,7 @@ mainHtml us cs self ms = docTypeHtml $ do
   H.head $ do
     H.title $ do
       toHtml ("«" :: String)
-      toHtml $ fromMaybe "Unknown User" $ lookup self us
+      toHtml $ fromJust $ lookup self us
       toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
