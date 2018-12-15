@@ -83,7 +83,7 @@ messageHtml us s (Message {..}) = do
   H.div ! messageStyle (isMessageTo mAddr) $ do
     H.div $ do
       addrHtml us s mAddr
-      H.span ! class_ "gap" $ toHtml ("" :: String)
+      H.span ! class_ "gap" $ mempty
       unixTimeHtml mDate
     p $ toHtml mBody
     H.div $ mapM_ attachmentHtml mAtt
