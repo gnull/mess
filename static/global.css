@@ -49,3 +49,18 @@ p {
   border: 1px solid black;
   background-color: #ddd;
 }
+
+table, td {
+  border: 1px solid gray;
+}
+
+th {
+}
+
+.captionColumn {
+  width: 200px;
+}
+
+.usersColumn {
+  width: 400px;
+}

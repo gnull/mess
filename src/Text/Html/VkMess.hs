@@ -38,12 +38,14 @@ import Text.Blaze.Html5 as H
   , toHtml
   , preEscapedToHtml
   , style
+  , table, tr, td, th
   , (!)
   , meta
   , pre
   , img
   , audio
   , source
+  , details, summary
   )
 
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
@@ -111,15 +113,15 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> Html
-groupCaption us cs g = H.div $ case messageGroup $ mAddr $ g of
+spoiler :: String -> Html -> Html
+spoiler s b = H.details $ H.summary (toHtml s) <> b
+
+groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
+groupCaption us cs g =  case messageGroup $ mAddr $ g of
   (MessageChat x) -> let tit = wrap $ ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
                          f u = toHtml $ fromMaybe "Unknown User" $ lookup u us
-                     in     tit
-                         <> toHtml (" (" :: String)
-                         <> (fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
-                         <> toHtml (")" :: String)
-  (MessageDialog x) -> wrap $ fromMaybe "Unknown user" $ lookup x us
+                     in  (tit, spoiler "Open" $ fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
+  (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
 mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
@@ -131,5 +133,9 @@ mainHtml us cs self ms = docTypeHtml $ do
       toHtml ("»" :: String)
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
-  body $ do
-    forM_ ms $ groupCaption us cs
+  body $ H.table $ do
+    tr $ do
+      H.th ! class_ "captionColumn" $ mempty
+      H.th ! class_ "usersColumn" $ mempty
+    forM_ ms $ row . groupCaption us cs
+  where row (x, y) = H.tr $ H.td x <> H.td y
