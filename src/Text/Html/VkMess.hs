@@ -52,12 +52,14 @@ import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
 import Text.Blaze.Internal (stringValue)
 
+userHtml :: [(UserId, String)] -> UserId -> Html
+userHtml us x = H.a ! href url $ name
+  where
+    name = toHtml $ fromMaybe "Unknown User" $ lookup x us
+    url = toValue $ "https://vk.com/id" ++ show x
+
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
-addrHtml us s x = H.span . (a ! href url) . toHtml
-                $ fromMaybe "Unknown User"
-                $ flip lookup us
-                $ messageAuthor s x where
-  url = toValue $ "https://vk.com/id" ++ show (messageAuthor s x)
+addrHtml us s x = H.span $ userHtml us $ messageAuthor s x
 
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
@@ -141,9 +143,9 @@ statsHtml ds = H.ul $ do
 
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
 groupCaption us cs g =  case messageGroup $ mAddr $ g of
-  (MessageChat x) -> let tit = ((globeEmoji <> stringToHtml " ") <>) $ wrap $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
-                         f u = toHtml $ fromMaybe "Unknown User" $ lookup u us
-                     in  (tit, fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
+  (MessageChat x) -> ( ((globeEmoji <> stringToHtml " ") <>) $ wrap $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+                     , fold $ intersperse (stringToHtml ", ") $ map (userHtml us) (cUsers $ fromJust $ lookup x cs)
+                     )
   (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
