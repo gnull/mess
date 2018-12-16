@@ -156,10 +156,7 @@ stringToHtml = toHtml
 mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Message, [Message])] -> Html
 mainHtml us cs self items = docTypeHtml $ do
   H.head $ do
-    H.title $ do
-      toHtml ("«" :: String)
-      toHtml $ fromJust $ lookup self us
-      toHtml ("»" :: String)
+    H.title $ toHtml $ fromJust $ lookup self us
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
   body $ H.table $ do
