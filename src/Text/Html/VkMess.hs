@@ -47,7 +47,6 @@ import Text.Blaze.Html5 as H
   , img
   , audio
   , source
-  , details, summary
   )
 
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
@@ -118,9 +117,6 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
-spoiler :: String -> Html -> Html
-spoiler s b = H.details $ H.summary (toHtml s) <> b
-
 -- An 📎
 clippyEmoji :: Html
 clippyEmoji = preEscapedToHtml ("&#x1F4CE;" :: String)
@@ -128,6 +124,10 @@ clippyEmoji = preEscapedToHtml ("&#x1F4CE;" :: String)
 -- An ✉️
 envelopeEmoji :: Html
 envelopeEmoji = preEscapedToHtml ("&#x1F4E8;" :: String)
+
+-- A 🌏
+globeEmoji :: Html
+globeEmoji = preEscapedToHtml ("&#x1F30F;" :: String)
 
 -- TODO: do something with «usersSeen ds» here
 statsHtml :: DialogStats -> Html
@@ -141,9 +141,9 @@ statsHtml ds = H.ul $ do
 
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
 groupCaption us cs g =  case messageGroup $ mAddr $ g of
-  (MessageChat x) -> let tit = wrap $ ("☭ " ++) $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+  (MessageChat x) -> let tit = ((globeEmoji <> stringToHtml " ") <>) $ wrap $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
                          f u = toHtml $ fromMaybe "Unknown User" $ lookup u us
-                     in  (tit, spoiler "Open" $ fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
+                     in  (tit, fold $ intersperse (toHtml (", " :: String)) $ map f (cUsers $ fromJust $ lookup x cs))
   (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
