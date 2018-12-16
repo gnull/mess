@@ -147,6 +147,10 @@ groupCaption us cs g =  case messageGroup $ mAddr $ g of
   (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
 
+-- Non-polymorphic helper
+stringToHtml :: String -> Html
+stringToHtml = toHtml
+
 mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Message, [Message])] -> Html
 mainHtml us cs self items = docTypeHtml $ do
   H.head $ do
@@ -158,10 +162,13 @@ mainHtml us cs self items = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   body $ H.table $ do
     tr $ do
-      H.th ! class_ "captionColumn" $ mempty
-      H.th ! class_ "statsColumn" $ mempty
-      H.th ! class_ "datesColumn" $ mempty
-      H.th ! class_ "usersColumn" $ mempty
+      H.th ! class_ "captionColumn" $ stringToHtml "Chat"
+      H.th ! class_ "statsColumn" $ do
+        H.ul $ do
+          H.li $ clippyEmoji <> stringToHtml "Attachments"
+          H.li $ envelopeEmoji <> stringToHtml "Sent/total messages"
+      H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
+      H.th ! class_ "usersColumn" $ stringToHtml "Group chat members"
     forM_ items $ \(m, ms) -> H.tr $ do
       let ds = getDialogStats ms
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
@@ -169,5 +176,5 @@ mainHtml us cs self items = docTypeHtml $ do
       let (cap, det) = groupCaption us cs m
       H.td cap
       H.td $ statsHtml ds
-      H.td $ start <> toHtml (" … " :: String) <> end
+      H.td $ start <> stringToHtml " … " <> end
       H.td det
