@@ -60,7 +60,7 @@ userHtml us x = H.a ! href url $ name
     url = toValue $ "https://vk.com/id" ++ show x
 
 usersHtml :: [(UserId, String)] -> [UserId] -> Html
-usersHtml us = fold . intersperse (stringToHtml ", ") . map (userHtml us)
+usersHtml us = fold . intersperse (stringToHtml ", ") . map (userHtml us) . sort
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
 addrHtml us s x = H.span $ userHtml us $ messageAuthor s x
