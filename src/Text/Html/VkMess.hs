@@ -11,7 +11,7 @@ import qualified Data.Text (unpack)
 
 import Data.List (sort, intersperse)
 import Data.Bool (bool)
-import Data.Foldable (fold)
+import Data.Foldable (fold, toList)
 import Data.Maybe (fromMaybe, fromJust)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
@@ -47,6 +47,7 @@ import Text.Blaze.Html5 as H
   , img
   , audio
   , source
+  , hr
   )
 
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
@@ -57,6 +58,9 @@ userHtml us x = H.a ! href url $ name
   where
     name = toHtml $ fromMaybe "Unknown User" $ lookup x us
     url = toValue $ "https://vk.com/id" ++ show x
+
+usersHtml :: [(UserId, String)] -> [UserId] -> Html
+usersHtml us = fold . intersperse (stringToHtml ", ") . map (userHtml us)
 
 addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
 addrHtml us s x = H.span $ userHtml us $ messageAuthor s x
@@ -131,7 +135,6 @@ envelopeEmoji = preEscapedToHtml ("&#x1F4E8;" :: String)
 globeEmoji :: Html
 globeEmoji = preEscapedToHtml ("&#x1F30F;" :: String)
 
--- TODO: do something with «usersSeen ds» here
 statsHtml :: DialogStats -> Html
 statsHtml ds = H.ul $ do
     H.li $ do
@@ -144,7 +147,7 @@ statsHtml ds = H.ul $ do
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
 groupCaption us cs g =  case messageGroup $ mAddr $ g of
   (MessageChat x) -> ( ((globeEmoji <> stringToHtml " ") <>) $ wrap $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
-                     , fold $ intersperse (stringToHtml ", ") $ map (userHtml us) (cUsers $ fromJust $ lookup x cs)
+                     , usersHtml us $ cUsers $ fromJust $ lookup x cs
                      )
   (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
   where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
@@ -167,7 +170,10 @@ mainHtml us cs self items = docTypeHtml $ do
           H.li $ clippyEmoji <> stringToHtml "Attachments"
           H.li $ envelopeEmoji <> stringToHtml "Sent/total messages"
       H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
-      H.th ! class_ "usersColumn" $ stringToHtml "Group chat members"
+      H.th ! class_ "usersColumn" $ do
+        stringToHtml "Group chat members"
+        H.hr
+        stringToHtml "Users mentioned in chat"
     forM_ items $ \(m, ms) -> H.tr $ do
       let ds = getDialogStats ms
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
@@ -176,4 +182,7 @@ mainHtml us cs self items = docTypeHtml $ do
       H.td cap
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
-      H.td det
+      H.td $ do
+        det
+        H.hr
+        usersHtml us (toList $ usersSeen ds)
