@@ -47,7 +47,6 @@ import Text.Blaze.Html5 as H
   , img
   , audio
   , source
-  , hr
   )
 
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
@@ -123,17 +122,20 @@ hrefFor = href . toValue . urlFor
 instance Urlable MessageGroup where
   urlFor = (++ ".html") . show
 
--- An 📎
+emojiHtml :: String -> Html
+emojiHtml = preEscapedToHtml
+
+-- Variuos emojis
 clippyEmoji :: Html
-clippyEmoji = preEscapedToHtml ("&#x1F4CE;" :: String)
-
--- An ✉️
+clippyEmoji = emojiHtml "&#x1F4CE;"      -- An 📎
 envelopeEmoji :: Html
-envelopeEmoji = preEscapedToHtml ("&#x1F4E8;" :: String)
-
--- A 🌏
+envelopeEmoji = emojiHtml "&#x1F4E8;"    -- An ✉️
 globeEmoji :: Html
-globeEmoji = preEscapedToHtml ("&#x1F30F;" :: String)
+globeEmoji = emojiHtml "&#x1F30F;"       -- A 🌏
+speakingEmoji :: Html
+speakingEmoji = emojiHtml "&#x1F5E3;"    -- A 🗣️
+bustsEmoji :: Html
+bustsEmoji = emojiHtml "&#x1F465;"       -- A 👥
 
 statsHtml :: DialogStats -> Html
 statsHtml ds = H.ul $ do
@@ -171,9 +173,8 @@ mainHtml us cs self items = docTypeHtml $ do
           H.li $ envelopeEmoji <> stringToHtml "Sent/total messages"
       H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
       H.th ! class_ "usersColumn" $ do
-        stringToHtml "Group chat members"
-        H.hr
-        stringToHtml "Users mentioned in chat"
+        H.p $ bustsEmoji <> stringToHtml "Group chat members"
+        H.p $ speakingEmoji <> stringToHtml "Users mentioned in chat"
     forM_ items $ \(m, ms) -> H.tr $ do
       let ds = getDialogStats ms
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
@@ -183,6 +184,5 @@ mainHtml us cs self items = docTypeHtml $ do
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
       H.td $ do
-        det
-        H.hr
-        usersHtml us (toList $ usersSeen ds)
+        H.p $ bustsEmoji <> stringToHtml ": " <> det
+        H.p $ speakingEmoji <> stringToHtml ": " <> usersHtml us (toList $ usersSeen ds)

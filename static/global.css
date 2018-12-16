@@ -69,7 +69,7 @@ th {
 }
 
 .statsColumn {
-  width: 250px;
+  width: 170px;
 }
 
 .datesColumn {
@@ -78,4 +78,9 @@ th {
 
 .usersColumn {
   width: auto;
+}
+
+hr {
+  width: 50%;
+  color: gray;
 }
