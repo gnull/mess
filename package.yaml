@@ -20,19 +20,19 @@ dependencies:
 - blaze-markup >=0.8
 - file-embed >=0.0
 - containers >=0.5.7
-- base >=4.7 && <5
 - VKHS
-- text >=1.2.2
-- unix-time >=0.3.7
-- aeson >=1.1
-- bytestring >=0.10
-- binary >=0.8
-- optparse-applicative >=0.13
-- containers >=0.5.7
+library:
+  source-dirs: src
+  exposed-modules:
+  - Data.VkMess
+  - Text.Html.VkMess
+  - Text.Html.VkMess.Static
 executables:
   mess-html:
     main: Html.hs
-    source-dirs: src
+    source-dirs: app
+    dependencies: mess >=0.1 && <2
   mess-fetch:
     main: Fetch.hs
-    source-dirs: src
+    source-dirs: app
+    dependencies: mess >=0.1 && <2
