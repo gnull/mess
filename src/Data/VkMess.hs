@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Data.VkMess
   ( Message(..)
@@ -18,19 +19,22 @@ module Data.VkMess
   , readFile, writeFile
   , vkImageSizes, Attachment(..)
   , DialogStats(..), getDialogStats
+  , Conversation(..), Conversations(..)
   ) where
 
 import Prelude hiding (readFile, writeFile)
 
-import Data.Aeson (FromJSON(..), (.:), (.:?), withObject)
+import Data.Aeson (FromJSON(..), (.:), (.:?), withObject, withArray, Value)
+import Data.Aeson.Types (Parser, explicitParseFieldMaybe)
 import qualified Data.Aeson (encode)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Lazy (readFile, writeFile)
-import Data.Maybe (fromMaybe, catMaybes)
+import Data.Maybe (fromMaybe, fromJust, catMaybes)
 import Data.Bool (bool)
 import Data.Monoid (Sum(..))
+import Data.Foldable (toList)
 import Data.Set (Set, singleton, empty)
-import Control.Monad (forM)
+import Control.Monad (forM, liftM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
 import Foreign.C.Types (CTime(CTime))
@@ -40,6 +44,50 @@ import GHC.Generics (Generic)
 
 type UserId       = Int
 type ChatId       = Int
+type GroupId      = Int
+
+data Conversation = ConvUser UserId String FilePath  -- user + name + photo
+                  | ConvChat ChatId String           -- chat + title
+                  | ConvGroup GroupId String         -- group + title
+                  | ConvEmail                        -- <unsupported>
+  deriving (Show)
+
+newtype Conversations = Conversations { getConversations :: [Conversation] }
+
+instance FromJSON Conversations where
+  parseJSON = withObject "conversations" $ \v -> do
+    profs <- fromMaybe [] <$> explicitParseFieldMaybe getProfiles v "profiles"
+    groups <- fromMaybe [] <$> explicitParseFieldMaybe getGroups v "groups"
+    items <- v .: "items"
+    liftM Conversations $ forM items $ \i -> do
+      c <- i .: "conversation"
+      p <- c .: "peer"
+      t <- p .: "type"
+      case t :: String of
+        "chat" -> do
+          cs <- c .: "chat_settings"
+          ConvChat <$> p .: "local_id" <*> cs .: "title"
+        "user" -> do
+          i' <- p .: "local_id"
+          return $ uncurry (ConvUser i') <$> fromJust $ lookup i' profs
+        "group" -> do
+          i' <- p .: "local_id"
+          return $ ConvGroup i' $ fromJust $ lookup i' groups
+        "email" -> return ConvEmail
+        _ -> fail "Unexpected conversation type"
+    where
+      getProfiles :: Value -> Parser [(UserId, (String, FilePath))]
+      getProfiles = withArray "Profiles List" $ \v -> do
+        forM (toList v) $ withObject "Profile" $ \i -> do
+          i' <- i .: "id"
+          f <- i .: "first_name"
+          l <- i .: "last_name"
+          p <- i .: "photo_100"
+          return (i', (f ++ l, p))
+      getGroups :: Value -> Parser [(GroupId, String)]
+      getGroups = withArray "Groups List" $ \v -> do
+        forM (toList v) $ withObject "Group"
+                        $ \i -> (,) <$> (i .: "id") <*> (i .: "name")
 
 data ChatRecord = ChatRecord
   { cId :: Integer

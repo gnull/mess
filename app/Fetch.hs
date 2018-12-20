@@ -12,19 +12,22 @@ import Control.Monad (forM)
 import Data.Binary (encode)
 import Data.List (intersperse, group, sort)
 import Data.Maybe (fromMaybe, mapMaybe)
-import Data.Text (pack, unpack, concat)
+import Data.Text (pack, unpack, concat, Text)
 
 import Options.Applicative
 import Data.Semigroup((<>))
 
+import Data.Aeson (FromJSON)
 import Web.VKHS
   ( runVK
   , defaultOptions
   , apiSimple
+  , apiR
   , API
   , MonadAPI
   , GenericOptions(..)
   , UserRecord
+  , MethodName
   , getCurrentUser
   )
 import Web.VKHS.API.Types (Sized(..), UserRecord(..))
@@ -40,7 +43,12 @@ import Data.VkMess
   , MessageGroup(..)
   , messageGroup
   , writeFile
+  , Conversation(..)
+  , Conversations(..)
   )
+
+apiSimpleNew :: (MonadAPI m x s, FromJSON a) => MethodName -> [(String, Text)] -> API m x a
+apiSimpleNew nm args = apiR nm (("v", "5.92"):args)
 
 getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
 getDialogR peer from count = apiSimple
@@ -58,6 +66,14 @@ getDialogsR from count = do
     , ("offset", pack $ show from)
     ]
   pure $ x {m_items = map dMess $ m_items x}
+
+getConversationsR :: (MonadAPI m x s) => Int -> Int -> API m x [Conversation]
+getConversationsR from count = getConversations <$> apiSimpleNew
+    "messages.getConversations"
+    [ ("count", pack $ show count)
+    , ("offset", pack $ show from)
+    , ("extended", "1")
+    ]
 
 getWholeDialog :: (MonadAPI m x s) => Int -> API m x [Message]
 getWholeDialog peer = f 0 where
