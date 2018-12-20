@@ -1,0 +1,38 @@
+name: mess
+version: '0.1.0.0'
+category: Web
+author: Author name here
+maintainer: example@example.com
+copyright: 2017 Author name here
+license: BSD3
+homepage: https://github.com/githubuser/mess#readme
+extra-source-files:
+- README.md
+dependencies:
+- base >=4.7 && <5
+- text >=1.2.2
+- unix-time >=0.3.7
+- aeson >=1.1
+- bytestring >=0.10
+- binary >=0.8
+- optparse-applicative >=0.13
+- blaze-html >=0.9
+- blaze-markup >=0.8
+- file-embed >=0.0
+- containers >=0.5.7
+- base >=4.7 && <5
+- VKHS
+- text >=1.2.2
+- unix-time >=0.3.7
+- aeson >=1.1
+- bytestring >=0.10
+- binary >=0.8
+- optparse-applicative >=0.13
+- containers >=0.5.7
+executables:
+  mess-html:
+    main: Html.hs
+    source-dirs: src
+  mess-fetch:
+    main: Fetch.hs
+    source-dirs: src
