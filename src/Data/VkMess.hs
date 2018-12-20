@@ -131,6 +131,7 @@ data Message = Message {
                , mAddr :: MessageAddr
                , mFwd  :: [Message]
                , mAtt  :: [Attachment]
+               , mJson :: ByteString
                } deriving (Generic, Show)
 
 instance FromJSON UnixTime where
@@ -152,6 +153,7 @@ instance FromJSON Message where
                     else MessageFromDialog <$> uid
     mFwd <- fromMaybe [] <$> v .:? "fwd_messages"
     mAtt <- fromMaybe [] <$> v .:? "attachments"
+    let mJson = Data.Aeson.encode v
     return $ Message {..}
 
 data Dialog = Dialog {dMess :: Message}
