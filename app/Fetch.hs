@@ -38,13 +38,10 @@ import Data.VkMess
   , UserId
   , ChatId
   , ChatRecord(..)
-  , MessageAddr(..)
-  , Dialog(..)
-  , MessageGroup(..)
-  , messageGroup
   , writeFile
   , Conversation(..)
   , Conversations(..)
+  , convExtId
   )
 
 apiSimpleNew :: (MonadAPI m x s, FromJSON a) => MethodName -> [(String, Text)] -> API m x a
@@ -57,15 +54,6 @@ getDialogR peer from count = apiSimple
   , ("offset", pack $ show from)
   , ("peer_id", pack $ show peer)
   ]
-
-getDialogsR :: (MonadAPI m x s) => Int -> Int -> API m x (Sized [Message])
-getDialogsR from count = do
-  x <- apiSimple
-    "messages.getDialogs"
-    [ ("count", pack $ show count)
-    , ("offset", pack $ show from)
-    ]
-  pure $ x {m_items = map dMess $ m_items x}
 
 getConversationsR :: (MonadAPI m x s) => Int -> Int -> API m x [Conversation]
 getConversationsR from count = getConversations <$> apiSimpleNew
@@ -85,10 +73,10 @@ getWholeDialog peer = f 0 where
           mss' <- f (from + 200)
           return $ mss ++ mss'
 
-getAllDialogs :: (MonadAPI m x s) => API m x [Message]
-getAllDialogs = f 0 where
+getAllConversations :: (MonadAPI m x s) => API m x [Conversation]
+getAllConversations = f 0 where
   f from = do
-    mss <- m_items <$> getDialogsR from 200
+    mss <- getConversationsR from 200
     if length mss < 200
         then return mss
         else do
@@ -151,26 +139,12 @@ optparser = execParser opts
       ( fullDesc
      <> progDesc "Fetch all messages from a vk.com profile")
 
-isDialog :: MessageGroup -> Bool
-isDialog (MessageDialog _) = True
-isDialog _ = False
-
-extractChat :: MessageGroup -> Maybe ChatId
-extractChat (MessageChat x) = Just x
+extractChat :: Conversation -> Maybe ChatId
+extractChat (ConvChat x _) = Just x
 extractChat _ = Nothing
 
-peerByMessageGroup :: MessageGroup -> Int
-peerByMessageGroup (MessageChat x) = 2000000000 + x
-peerByMessageGroup (MessageDialog x) = x
-
-getAllAddressees :: [Message] -> [UserId]
-getAllAddressees = concatMap f where
-  f m  = getAllAddressees (mFwd m)
-      ++ case mAddr m of
-           (MessageToChat     _) -> []
-           (MessageFromChat x _) -> [x]
-           (MessageToDialog   x) -> [x]
-           (MessageFromDialog x) -> [x]
+getAllAddressees :: Message -> [UserId]
+getAllAddressees m = mUser m : concatMap getAllAddressees (mFwd m)
 
 -- This nub is like the usual, but works in O(n log n) instead of O(n²)
 nub' :: Ord a => [a] -> [a]
@@ -182,15 +156,15 @@ main = do
   let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbose = verb,
     l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
   x <- runVK myOptions $ do
-    ds <- getAllDialogs
+    ds <- getAllConversations
     ms <- forM ds $ \d -> do
-      ms <- getWholeDialog $ peerByMessageGroup $ messageGroup $ mAddr d
+      ms <- getWholeDialog $ convExtId d
       pure (d, ms)
-    let cIds = mapMaybe (extractChat . messageGroup . mAddr . fst) ms
+    let cIds = mapMaybe (extractChat . fst) ms
     chats <- map (fromInteger . cId &&& id) <$> getChats cIds
     self <- fromInteger <$> ur_id <$> getCurrentUser
     let ids = nub'  $ self
-                    : (getAllAddressees $ Prelude.concat $ map snd ms)
+                    : (concatMap getAllAddressees $ Prelude.concat $ map snd ms)
                    ++ (chats >>= \(_, x) -> cAdmin x : cUsers x)
     names <- getNames ids
     pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names, sChats = chats }

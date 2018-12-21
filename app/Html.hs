@@ -13,7 +13,6 @@ import Data.List (sortOn)
 import Data.VkMess
   ( Message(..)
   , Snapshot(..)
-  , messageGroup
   , readFile
   , writeFile
   )
@@ -24,7 +23,7 @@ import Data.Semigroup((<>))
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Html.VkMess
   ( mainHtml
-  , urlFor
+  , convPath
   , dialogHtml
   )
 
@@ -43,6 +42,5 @@ main = do
   inFile <- optparser
   (Snapshot ms self users chats) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
-  forM_ ms $ \(d, m) -> do
-    let g = messageGroup $ mAddr d
-    writeFile (urlFor g) $ renderHtml $ dialogHtml users chats self $ sortOn mDate m
+  forM_ ms $ \(d, m) -> writeFile (convPath d) $ renderHtml
+                      $ dialogHtml users chats self (d, sortOn mDate m)

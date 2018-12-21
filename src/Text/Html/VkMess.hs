@@ -7,7 +7,6 @@ module Text.Html.VkMess where
 import Control.Monad (forM_)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 (unpack)
-import qualified Data.Text (unpack)
 
 import Data.List (sort, intersperse)
 import Data.Bool (bool)
@@ -17,16 +16,13 @@ import Data.Maybe (fromMaybe, fromJust)
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
   ( Message(..)
-  , MessageAddr(..)
-  , MessageGroup(..)
-  , messageGroup
-  , isMessageTo
-  , messageAuthor
   , UserId
   , ChatId
   , ChatRecord(..)
   , Attachment(..)
   , DialogStats(..), getDialogStats
+  , Conversation(..)
+  , convTitle
   )
 import Text.Html.VkMess.Static (globalCSS)
 
@@ -61,9 +57,6 @@ userHtml us x = H.a ! href url $ name
 usersHtml :: [(UserId, String)] -> [UserId] -> Html
 usersHtml us = fold . intersperse (stringToHtml ", ") . map (userHtml us) . sort
 
-addrHtml :: [(UserId, String)] -> UserId -> MessageAddr -> Html
-addrHtml us s x = H.span $ userHtml us $ messageAuthor s x
-
 unixTimeHtml :: UnixTime -> Html
 unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 
@@ -89,9 +82,9 @@ messageStyle isTo =
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
-  H.div ! messageStyle (isMessageTo mAddr) $ do
+  H.div ! messageStyle mOut $ do
     H.div $ do
-      addrHtml us s mAddr
+      userHtml us mUser
       H.span ! class_ "gap" $ mempty
       unixTimeHtml mDate
     p $ toHtml mBody
@@ -99,28 +92,25 @@ messageHtml us s (Message {..}) = do
     H.div ! class_ "forwardedContainer" $
       forM_ mFwd $ messageHtml us s
 
-dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [Message] -> Html
-dialogHtml us cs s ms = docTypeHtml $ do
+dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> (Conversation, [Message]) -> Html
+dialogHtml us _ s (conv, ms) = docTypeHtml $ do
   H.head $ do
     title $ toHtml
-          $ let addressee = case messageGroup $ mAddr $ Prelude.head ms of
-                     (MessageChat x) -> Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
-                     (MessageDialog x) -> fromMaybe "Unknown User" $ lookup x us
-            in "«" ++ addressee ++ "» — " ++ fromJust (lookup s us)
+          $ "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
   H.body ! class_ "dialogBody"
     $ H.div ! class_ "dialogContainer"
     $ mapM_ (messageHtml us s) ms
 
-class Urlable a where
-  urlFor :: a -> String
+convPath :: Conversation -> FilePath
+convPath (ConvUser i _ _) = "user-" ++ show i ++ ".html"
+convPath (ConvChat i _) = "chat-" ++ show i ++ ".html"
+convPath (ConvGroup i _) = "group-" ++ show i ++ ".html"
+convPath (ConvEmail i) = "email-" ++ show i ++ ".html"
 
-hrefFor :: MessageGroup -> Attribute
-hrefFor = href . toValue . urlFor
-
-instance Urlable MessageGroup where
-  urlFor = (++ ".html") . show
+hrefFor :: Conversation -> Attribute
+hrefFor = href . toValue . convPath
 
 emojiHtml :: String -> Html
 emojiHtml = preEscapedToHtml
@@ -146,19 +136,21 @@ statsHtml ds = H.ul $ do
       envelopeEmoji
       toHtml $ ": " ++ show (sentCount ds) ++ "/" ++ show (totalCount ds)
 
-groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Message -> (Html, Html)
-groupCaption us cs g =  case messageGroup $ mAddr $ g of
-  (MessageChat x) -> ( ((globeEmoji <> stringToHtml " ") <>) $ wrap $ Data.Text.unpack $ cTitle $ fromJust $ lookup x cs
+groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Conversation -> (Html, Html)
+groupCaption us cs g =  case g of
+  (ConvUser _ n _) -> (wrap n, mempty)
+  (ConvChat x t) ->  ( ((globeEmoji <> stringToHtml " ") <>) $ wrap t
                      , usersHtml us $ cUsers $ fromJust $ lookup x cs
                      )
-  (MessageDialog x) -> (wrap $ fromMaybe "Unknown user" $ lookup x us, mempty)
-  where wrap = (a ! hrefFor (messageGroup $ mAddr $ g)) . toHtml
+  (ConvGroup _ n) -> (wrap n, mempty)
+  (ConvEmail i) -> (wrap $ "Email #" ++ show i, mempty)
+  where wrap = (a ! hrefFor g) . toHtml
 
 -- Non-polymorphic helper
 stringToHtml :: String -> Html
 stringToHtml = toHtml
 
-mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Message, [Message])] -> Html
+mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Conversation, [Message])] -> Html
 mainHtml us cs self items = docTypeHtml $ do
   H.head $ do
     H.title $ toHtml $ fromJust $ lookup self us
@@ -175,11 +167,11 @@ mainHtml us cs self items = docTypeHtml $ do
       H.th ! class_ "usersColumn" $ do
         H.p $ bustsEmoji <> stringToHtml "Group chat members"
         H.p $ speakingEmoji <> stringToHtml "Users mentioned in chat"
-    forM_ items $ \(m, ms) -> H.tr $ do
-      let ds = getDialogStats ms
+    forM_ items $ \(conv, ms) -> H.tr $ do
+      let ds = getDialogStats conv ms
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let end = shortUnixTimeHtml $ mDate $ last ms
-      let (cap, det) = groupCaption us cs m
+      let (cap, det) = groupCaption us cs conv
       H.td cap
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end

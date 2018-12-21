@@ -6,20 +6,15 @@
 
 module Data.VkMess
   ( Message(..)
-  , MessageAddr(..)
   , Snapshot(..)
-  , MessageGroup(..)
-  , messageGroup
-  , isMessageTo
   , UserId
   , ChatId
   , ChatRecord(..)
-  , messageAuthor
-  , Dialog(..)
   , readFile, writeFile
   , vkImageSizes, Attachment(..)
   , DialogStats(..), getDialogStats
   , Conversation(..), Conversations(..)
+  , convTitle, convExtId
   ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -33,7 +28,7 @@ import Data.Maybe (fromMaybe, fromJust, catMaybes)
 import Data.Bool (bool)
 import Data.Monoid (Sum(..))
 import Data.Foldable (toList)
-import Data.Set (Set, singleton, empty)
+import Data.Set (Set, singleton)
 import Control.Monad (forM, liftM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -45,12 +40,26 @@ import GHC.Generics (Generic)
 type UserId       = Int
 type ChatId       = Int
 type GroupId      = Int
+type EmailId      = Int
 
+-- TODO Add a field email address here
 data Conversation = ConvUser UserId String FilePath  -- user + name + photo
                   | ConvChat ChatId String           -- chat + title
                   | ConvGroup GroupId String         -- group + title
-                  | ConvEmail                        -- <unsupported>
-  deriving (Show)
+                  | ConvEmail EmailId                -- email
+  deriving (Show, Generic)
+
+convTitle :: Conversation -> String
+convTitle (ConvUser _ n _) = n
+convTitle (ConvChat _ n) = n
+convTitle (ConvGroup _ n) = n
+convTitle (ConvEmail i) = "Email #" ++ show i -- TODO: Fix this!
+
+convExtId :: Conversation -> Int
+convExtId (ConvUser i _ _) = i
+convExtId (ConvChat i _) = i - 2000000000
+convExtId (ConvGroup i _) = -i
+convExtId (ConvEmail i) = -(i + 2000000000)
 
 newtype Conversations = Conversations { getConversations :: [Conversation] }
 
@@ -73,7 +82,7 @@ instance FromJSON Conversations where
         "group" -> do
           i' <- p .: "local_id"
           return $ ConvGroup i' $ fromJust $ lookup i' groups
-        "email" -> return ConvEmail
+        "email" -> ConvEmail <$> p .: "local_id"
         _ -> fail "Unexpected conversation type"
     where
       getProfiles :: Value -> Parser [(UserId, (String, FilePath))]
@@ -103,36 +112,6 @@ instance FromJSON ChatRecord where
     cAdmin <- v .: "admin_id"
     cUsers <- v .: "users"
     return $ ChatRecord {..}
-
--- | Id of chat or dialog this message belongs to
-data MessageAddr = MessageToChat ChatId
-                 | MessageFromChat UserId ChatId -- This one contains source user id
-                 | MessageToDialog UserId
-                 | MessageFromDialog UserId deriving (Ord, Eq, Generic, Show)
-
-isMessageTo :: MessageAddr -> Bool
-isMessageTo (MessageToChat   _) = True
-isMessageTo (MessageToDialog _) = True
-isMessageTo _ = False
-
--- Given self uid and message addr, return uid of message author
-messageAuthor :: UserId -> MessageAddr -> UserId
-messageAuthor s (MessageToChat _    ) = s
-messageAuthor s (MessageToDialog _  ) = s
-messageAuthor _ (MessageFromChat x _) = x
-messageAuthor _ (MessageFromDialog x) = x
-
-data MessageGroup = MessageChat ChatId | MessageDialog UserId deriving (Ord, Eq)
-
-instance Show MessageGroup where
-  show (MessageChat   x) = "c" ++ show x
-  show (MessageDialog x) = "id" ++ show x
-
-messageGroup :: MessageAddr -> MessageGroup
-messageGroup (MessageToChat     x) = MessageChat x
-messageGroup (MessageFromChat _ x) = MessageChat x
-messageGroup (MessageToDialog   x) = MessageDialog x
-messageGroup (MessageFromDialog x) = MessageDialog x
 
 data Attachment = Photo [(Int, FilePath)]
                 | Sticker FilePath
@@ -176,7 +155,8 @@ instance FromJSON Attachment where
 data Message = Message {
                  mBody :: Text
                , mDate :: UnixTime
-               , mAddr :: MessageAddr
+               , mOut  :: Bool
+               , mUser :: UserId
                , mFwd  :: [Message]
                , mAtt  :: [Attachment]
                , mJson :: ByteString
@@ -189,35 +169,20 @@ instance FromJSON Message where
   parseJSON = withObject "message" $ \v -> do
     mBody <- v .: "body"
     mDate <- v .: "date"
-    out <- (/= (0 :: Int)) <$> fromMaybe 0 <$> v .:? "out"
-    chatId <- v .:? "chat_id"
-    let uid = v .: "user_id"
-    mAddr <- case chatId of
-                  (Just chatId') -> if out
-                    then MessageToChat   <$> return chatId'
-                    else MessageFromChat <$> uid <*> return chatId'
-                  Nothing -> if out
-                    then MessageToDialog   <$> uid
-                    else MessageFromDialog <$> uid
+    mOut <- (/= (0 :: Int)) <$> fromMaybe 0 <$> v .:? "out"
+    mUser <- v .: "user_id"
     mFwd <- fromMaybe [] <$> v .:? "fwd_messages"
     mAtt <- fromMaybe [] <$> v .:? "attachments"
     let mJson = Data.Aeson.encode v
     return $ Message {..}
 
-data Dialog = Dialog {dMess :: Message}
-
-instance FromJSON Dialog where
-  parseJSON = withObject "dialog" $ \v -> do
-    x <- v .: "message"
-    return $ Dialog x
-
-data Snapshot = Snapshot { sDialogs :: [(Message, [Message])]
+data Snapshot = Snapshot { sDialogs :: [(Conversation, [Message])]
                          , sSelf :: UserId
                          , sUsers :: [(UserId, String)]
                          , sChats :: [(ChatId, ChatRecord)]
                          } deriving (Generic, Show)
 
-instance Binary MessageAddr
+instance Binary Conversation
 instance Binary Attachment
 instance Binary Message
 instance Binary ChatRecord
@@ -241,16 +206,14 @@ instance Monoid DialogStats where
                          (getSum mempty)
                          mempty
 
-getDialogStats :: [Message] -> DialogStats
-getDialogStats = foldMap f
+getDialogStats :: Conversation -> [Message] -> DialogStats
+getDialogStats conv = foldMap f
   where
+    f :: Message -> DialogStats
     f = do
       attachmentCount <- length <$> mAtt
-      sentCount <- bool 0 1 <$> isMessageTo <$> mAddr
+      sentCount <- bool 0 1 <$> mOut
       let totalCount = 1
-      usersSeen <- seen <$> mAddr
-      sub <- getDialogStats <$> mFwd
+      usersSeen <- singleton <$> mUser
+      sub <- getDialogStats conv <$> mFwd
       return $ mappend sub $ DialogStats {..}
-    seen (MessageFromChat x _) = singleton x
-    seen (MessageFromDialog x) = singleton x
-    seen _ = empty
