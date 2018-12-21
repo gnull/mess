@@ -57,7 +57,7 @@ convTitle (ConvEmail i) = "Email #" ++ show i -- TODO: Fix this!
 
 convExtId :: Conversation -> Int
 convExtId (ConvUser i _ _) = i
-convExtId (ConvChat i _) = i - 2000000000
+convExtId (ConvChat i _) = i + 2000000000
 convExtId (ConvGroup i _) = -i
 convExtId (ConvEmail i) = -(i + 2000000000)
 
