@@ -27,6 +27,10 @@ import Data.ByteString.Lazy (readFile, writeFile)
 import Data.Maybe (fromMaybe, fromJust, catMaybes)
 import Data.Bool (bool)
 import Data.Monoid (Sum(..))
+
+-- For deriving Monod instances
+import Generics.Deriving.Monoid (memptydefault, mappenddefault)
+
 import Data.Foldable (toList)
 import Data.Set (Set, singleton)
 import Control.Monad (forM, liftM)
@@ -191,31 +195,24 @@ instance Binary ChatRecord
 instance Binary Snapshot
 
 data DialogStats = DialogStats
-                  { attachmentCount :: Int
-                  , sentCount :: Int
-                  , totalCount :: Int
+                  { attachmentCount :: Sum Int
+                  , sentCount :: Sum Int
+                  , totalCount :: Sum Int
                   , usersSeen :: Set UserId
-                  }
+                  } deriving (Generic)
 
 instance Monoid DialogStats where
-    DialogStats a b c d `mappend` DialogStats a' b' c' d' =
-                                  DialogStats (getSum $ Sum a `mappend` Sum a')
-                                              (getSum $ Sum b `mappend` Sum b')
-                                              (getSum $ Sum c `mappend` Sum c')
-                                              (d `mappend` d')
-    mempty = DialogStats (getSum mempty)
-                         (getSum mempty)
-                         (getSum mempty)
-                         mempty
+  mappend = mappenddefault
+  mempty = memptydefault
 
 getDialogStats :: Conversation -> [Message] -> DialogStats
 getDialogStats conv = foldMap f
   where
     f :: Message -> DialogStats
     f = do
-      attachmentCount <- length <$> mAtt
-      sentCount <- bool 0 1 <$> mOut
-      let totalCount = 1
+      attachmentCount <- Sum <$> length <$> mAtt
+      sentCount <- Sum <$> bool 0 1 <$> mOut
+      let totalCount = Sum 1
       usersSeen <- singleton <$> mUser
       sub <- getDialogStats conv <$> mFwd
       return $ mappend sub $ DialogStats {..}

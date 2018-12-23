@@ -49,6 +49,8 @@ extra-deps:
 - pipes-http-1.0.5
 - regexpr-0.5.4
 - file-embed-0.0.11
+- generic-deriving-1.12.2@sha256:df0922a14591489c67d6938fec5d6dc4aebb3f50b1c25cf940016893af07223f
+- th-abstraction-0.2.9.0@sha256:f6e93b935ea3e9adb7c83e65f711b7c77affd8d0c505a68c7c4775f7cdb659b3
 
 # Override default flag values for local packages and extra-deps
 flags: {}

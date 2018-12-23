@@ -13,6 +13,7 @@ import Data.Bool (bool)
 import Data.Foldable (fold, toList)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Set (difference, fromList)
+import Data.Monoid (Sum(..))
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
@@ -131,10 +132,10 @@ statsHtml :: DialogStats -> Html
 statsHtml ds = do
     H.p $ do
       clippyEmoji
-      toHtml $ ": " ++ show (attachmentCount ds)
+      toHtml $ ": " ++ (show $ getSum $ attachmentCount ds)
     H.p $ do
       envelopeEmoji
-      toHtml $ ": " ++ show (sentCount ds) ++ "/" ++ show (totalCount ds)
+      toHtml $ ": " ++ (show $ getSum $ sentCount ds) ++ "/" ++ (show $ getSum $ totalCount ds)
 
 groupCaptionHtml :: Conversation -> Html
 groupCaptionHtml g =  case g of

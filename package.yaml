@@ -20,6 +20,7 @@ dependencies:
 - blaze-markup >=0.8
 - file-embed >=0.0
 - containers >=0.5.7
+- generic-deriving >=1.12 && <2
 - VKHS
 library:
   source-dirs: src
