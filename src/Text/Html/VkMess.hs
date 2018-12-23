@@ -87,7 +87,7 @@ messageHtml us s (Message {..}) = do
       userHtml us mUser
       H.span ! class_ "gap" $ mempty
       unixTimeHtml mDate
-    p $ toHtml mBody
+    H.p $ toHtml mBody
     H.div $ mapM_ attachmentHtml mAtt
     H.div ! class_ "forwardedContainer" $
       forM_ mFwd $ messageHtml us s
