@@ -12,6 +12,7 @@ import Data.List (sort, intersperse)
 import Data.Bool (bool)
 import Data.Foldable (fold, toList)
 import Data.Maybe (fromMaybe, fromJust)
+import Data.Set (difference, fromList)
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
@@ -144,10 +145,11 @@ groupCaptionHtml g =  case g of
   (ConvEmail i) -> wrap $ "Email #" ++ show i
   where wrap = (a ! hrefFor g) . toHtml
 
-groupUsersHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Conversation -> Html
-groupUsersHtml us cs g =  case g of
-  (ConvChat x _) -> usersHtml us $ cUsers $ fromJust $ lookup x cs
-  _ -> mempty
+groupUsers :: [(ChatId, ChatRecord)] -> Conversation -> [UserId]
+groupUsers cs g =  case g of
+  (ConvChat x _) -> cUsers $ fromJust $ lookup x cs
+  (ConvUser x _ _) -> [x]
+  _ -> []
 
 -- Non-polymorphic helper
 stringToHtml :: String -> Html
@@ -175,10 +177,16 @@ mainHtml us cs self items = docTypeHtml $ do
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let end = shortUnixTimeHtml $ mDate $ last ms
       let cap = groupCaptionHtml conv
-      let det = groupUsersHtml us cs conv
+      let members = groupUsers cs conv
+      let det = usersHtml us members
       H.td cap
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
       H.td $ do
         H.p $ bustsEmoji <> stringToHtml ": " <> det
-        H.p $ speakingEmoji <> stringToHtml ": " <> usersHtml us (toList $ usersSeen ds)
+        H.p $ do
+          speakingEmoji
+          stringToHtml ": "
+          usersHtml us $ toList
+                       $ (flip difference $ fromList (self:members))
+                       $ usersSeen ds
