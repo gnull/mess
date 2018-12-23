@@ -138,7 +138,7 @@ statsHtml ds = H.ul $ do
 
 groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Conversation -> (Html, Html)
 groupCaption us cs g =  case g of
-  (ConvUser _ n _) -> (wrap n, mempty)
+  (ConvUser _ n i) -> (img ! src (toValue i) ! class_ "profileAvatar" <> wrap n, mempty)
   (ConvChat x t) ->  ( ((globeEmoji <> stringToHtml " ") <>) $ wrap t
                      , usersHtml us $ cUsers $ fromJust $ lookup x cs
                      )

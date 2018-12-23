@@ -84,3 +84,8 @@ hr {
   width: 50%;
   color: gray;
 }
+
+.profileAvatar {
+  height: 50px;
+  width: auto;
+}
