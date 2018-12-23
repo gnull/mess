@@ -92,7 +92,7 @@ instance FromJSON Conversations where
           f <- i .: "first_name"
           l <- i .: "last_name"
           p <- i .: "photo_100"
-          return (i', (f ++ l, p))
+          return (i', (f ++ " " ++ l, p))
       getGroups :: Value -> Parser [(GroupId, String)]
       getGroups = withArray "Groups List" $ \v -> do
         forM (toList v) $ withObject "Group"
