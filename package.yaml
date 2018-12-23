@@ -30,10 +30,10 @@ library:
   - Text.Html.VkMess.Static
 executables:
   mess-html:
-    main: Html.hs
-    source-dirs: app
+    main: Main.hs
+    source-dirs: app/html/
     dependencies: mess >=0.1 && <2
   mess-fetch:
-    main: Fetch.hs
-    source-dirs: app
+    main: Main.hs
+    source-dirs: app/fetch/
     dependencies: mess >=0.1 && <2

@@ -201,8 +201,11 @@ data DialogStats = DialogStats
                   , usersSeen :: Set UserId
                   } deriving (Generic)
 
+instance Semigroup DialogStats where
+  (<>) = mappenddefault
+
 instance Monoid DialogStats where
-  mappend = mappenddefault
+  mappend = (<>)
   mempty = memptydefault
 
 getDialogStats :: Conversation -> [Message] -> DialogStats

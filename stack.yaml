@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-9.0
+resolver: lts-12.25
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -38,19 +38,15 @@ resolver: lts-9.0
 packages:
 - .
 - location:
-    git: https://github.com/grwlf/vkhs.git
-    commit: 5d22aab8c023010cd3f095b0cd6d8e759a4fa694
+    git: https://github.com/gnull/vkhs.git
+    commit: ff12fd9eaf9ef8455c184253e07446e7199c957e
   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- mtlparse-0.1.4.0
-- pipes-http-1.0.5
-- regexpr-0.5.4
-- file-embed-0.0.11
-- generic-deriving-1.12.2@sha256:df0922a14591489c67d6938fec5d6dc4aebb3f50b1c25cf940016893af07223f
-- th-abstraction-0.2.9.0@sha256:f6e93b935ea3e9adb7c83e65f711b7c77affd8d0c505a68c7c4775f7cdb659b3
+- mtlparse-0.1.4.0@sha256:82d7fb37f5633b4cb3d6ac4ef325cd660282cbc265547d82ce23f3f9f8e5b352
+- regexpr-0.5.4@sha256:a942463f1f25638c81b1c1feab5f958f6f404114113b7788f6a7db95f60e5fe2
 
 # Override default flag values for local packages and extra-deps
 flags: {}
