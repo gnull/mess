@@ -55,6 +55,11 @@ table, th, td {
   border-collapse: collapse;
 }
 
+td {
+  padding: 1px 5px 1px 5px; /* top right bottom left */
+  margin: 0px;
+}
+
 table {
    width: 100%;
 }
