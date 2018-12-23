@@ -37,7 +37,6 @@ import Text.Blaze.Html5 as H
   , preEscapedToHtml
   , style
   , table, tr, td, th
-  , ul, li
   , (!)
   , meta
   , pre
@@ -129,11 +128,11 @@ bustsEmoji :: Html
 bustsEmoji = emojiHtml "&#x1F465;"       -- A 👥
 
 statsHtml :: DialogStats -> Html
-statsHtml ds = H.ul $ do
-    H.li $ do
+statsHtml ds = do
+    H.p $ do
       clippyEmoji
       toHtml $ ": " ++ show (attachmentCount ds)
-    H.li $ do
+    H.p $ do
       envelopeEmoji
       toHtml $ ": " ++ show (sentCount ds) ++ "/" ++ show (totalCount ds)
 
@@ -165,9 +164,8 @@ mainHtml us cs self items = docTypeHtml $ do
     tr $ do
       H.th ! class_ "captionColumn" $ stringToHtml "Chat"
       H.th ! class_ "statsColumn" $ do
-        H.ul $ do
-          H.li $ clippyEmoji <> stringToHtml "Attachments"
-          H.li $ envelopeEmoji <> stringToHtml "Sent/total messages"
+        H.p $ clippyEmoji <> stringToHtml "Attachments"
+        H.p $ envelopeEmoji <> stringToHtml "Sent/total messages"
       H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
       H.th ! class_ "usersColumn" $ do
         H.p $ bustsEmoji <> stringToHtml "Group chat members"
