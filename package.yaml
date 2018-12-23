@@ -32,8 +32,8 @@ executables:
   mess-html:
     main: Main.hs
     source-dirs: app/html/
-    dependencies: mess >=0.1 && <2
+    dependencies: mess
   mess-fetch:
     main: Main.hs
     source-dirs: app/fetch/
-    dependencies: mess >=0.1 && <2
+    dependencies: mess
