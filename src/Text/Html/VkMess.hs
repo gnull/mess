@@ -136,15 +136,18 @@ statsHtml ds = H.ul $ do
       envelopeEmoji
       toHtml $ ": " ++ show (sentCount ds) ++ "/" ++ show (totalCount ds)
 
-groupCaption :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Conversation -> (Html, Html)
-groupCaption us cs g =  case g of
-  (ConvUser _ n i) -> (img ! src (toValue i) ! class_ "profileAvatar" <> wrap n, mempty)
-  (ConvChat x t) ->  ( ((globeEmoji <> stringToHtml " ") <>) $ wrap t
-                     , usersHtml us $ cUsers $ fromJust $ lookup x cs
-                     )
-  (ConvGroup _ n) -> (wrap n, mempty)
-  (ConvEmail i) -> (wrap $ "Email #" ++ show i, mempty)
+groupCaptionHtml :: Conversation -> Html
+groupCaptionHtml g =  case g of
+  (ConvUser _ n i) -> img ! src (toValue i) ! class_ "profileAvatar" <> wrap n
+  (ConvChat _ t) ->  ((globeEmoji <> stringToHtml " ") <>) $ wrap t
+  (ConvGroup _ n) -> wrap n
+  (ConvEmail i) -> wrap $ "Email #" ++ show i
   where wrap = (a ! hrefFor g) . toHtml
+
+groupUsersHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> Conversation -> Html
+groupUsersHtml us cs g =  case g of
+  (ConvChat x _) -> usersHtml us $ cUsers $ fromJust $ lookup x cs
+  _ -> mempty
 
 -- Non-polymorphic helper
 stringToHtml :: String -> Html
@@ -171,7 +174,8 @@ mainHtml us cs self items = docTypeHtml $ do
       let ds = getDialogStats conv ms
       let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let end = shortUnixTimeHtml $ mDate $ last ms
-      let (cap, det) = groupCaption us cs conv
+      let cap = groupCaptionHtml conv
+      let det = groupUsersHtml us cs conv
       H.td cap
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
