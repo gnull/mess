@@ -102,7 +102,7 @@ dialogHtml us _ s (conv, ms) = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   H.body ! class_ "dialogBody"
     $ H.div ! class_ "dialogContainer"
-    $ mapM_ (messageHtml us s) ms
+    $ mapM_ (messageHtml us s) $ reverse ms
 
 convPath :: Conversation -> FilePath
 convPath (ConvUser i _ _) = "user-" ++ show i ++ ".html"
@@ -174,8 +174,8 @@ mainHtml us cs self items = docTypeHtml $ do
         H.p $ speakingEmoji <> stringToHtml "Users mentioned in chat"
     forM_ items $ \(conv, ms) -> H.tr $ do
       let ds = getDialogStats conv ms
-      let start = shortUnixTimeHtml $ mDate $ Prelude.head ms
-      let end = shortUnixTimeHtml $ mDate $ last ms
+      let start = shortUnixTimeHtml $ mDate $ last ms
+      let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let cap = groupCaptionHtml conv
       let members = groupUsers cs conv
       let det = usersHtml us members

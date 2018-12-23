@@ -8,11 +8,8 @@ import Prelude hiding (readFile, writeFile)
 import Control.Monad (forM_)
 import Data.Binary (decode)
 
-import Data.List (sortOn)
-
 import Data.VkMess
-  ( Message(..)
-  , Snapshot(..)
+  ( Snapshot(..)
   , readFile
   , writeFile
   )
@@ -43,4 +40,4 @@ main = do
   (Snapshot ms self users chats) <- decode <$> readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
   forM_ ms $ \(d, m) -> writeFile (convPath d) $ renderHtml
-                      $ dialogHtml users chats self (d, sortOn mDate m)
+                      $ dialogHtml users chats self (d, m)

@@ -177,6 +177,8 @@ instance FromJSON Message where
     return $ Message {..}
 
 data Snapshot = Snapshot { sDialogs :: [(Conversation, [Message])]
+                         -- ^- Messages go in the original vk order — the most
+                         -- recent ones first
                          , sSelf :: UserId
                          , sUsers :: [(UserId, String)]
                          , sChats :: [(ChatId, ChatRecord)]
