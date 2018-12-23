@@ -10,16 +10,16 @@ extra-source-files:
 - README.md
 dependencies:
 - base >=4.7 && <5
-- text >=1.2.2
-- unix-time >=0.3.7
-- aeson >=1.1
-- bytestring >=0.10
-- binary >=0.8
-- optparse-applicative >=0.13
-- blaze-html >=0.9
-- blaze-markup >=0.8
-- file-embed >=0.0
-- containers >=0.5.7
+- text >=1.2 && <2
+- unix-time >=0.3 && <1
+- aeson >=1.1 && <2
+- bytestring >=0.10 && <1
+- binary >=0.8 && <1
+- optparse-applicative >=0.13 && <1
+- blaze-html >=0.9 && <1
+- blaze-markup >=0.8 && <1
+- file-embed >=0.0 && <1
+- containers >=0.5 && <1
 - generic-deriving >=1.12 && <2
 - VKHS
 library:
