@@ -85,7 +85,7 @@ messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
   H.div ! messageStyle mOut $ do
     H.div $ do
-      userHtml us mUser
+      userHtml us $ if mOut then s else mUser
       H.span ! class_ "gap" $ mempty
       unixTimeHtml mDate
     H.p $ toHtml mBody

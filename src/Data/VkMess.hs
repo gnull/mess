@@ -160,7 +160,7 @@ data Message = Message {
                  mBody :: Text
                , mDate :: UnixTime
                , mOut  :: Bool
-               , mUser :: UserId
+               , mUser :: UserId -- Beware! This field is incorrect for sent messages! TODO: Fix this.
                , mFwd  :: [Message]
                , mAtt  :: [Attachment]
                , mJson :: ByteString
