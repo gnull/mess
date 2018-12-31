@@ -207,8 +207,8 @@ instance Monoid DialogStats where
   mappend = mappenddefault
   mempty = memptydefault
 
-getDialogStats :: Conversation -> [Message] -> DialogStats
-getDialogStats conv = foldMap f
+getDialogStats :: [Message] -> DialogStats
+getDialogStats = foldMap f
   where
     f :: Message -> DialogStats
     f = do
@@ -216,7 +216,7 @@ getDialogStats conv = foldMap f
       sentCount <- Sum <$> bool 0 1 <$> mOut
       let totalCount = Sum 1
       usersSeen <- singleton <$> mUser
-      sub <- getDialogStats conv <$> mFwd
+      sub <- getDialogStats <$> mFwd
       return $ mappend sub $ DialogStats {..}
 
 getSnaphotUrls :: Snapshot -> [FilePath]

@@ -172,7 +172,7 @@ mainHtml us cs self items = docTypeHtml $ do
         H.p $ bustsEmoji <> stringToHtml "Group chat members"
         H.p $ speakingEmoji <> stringToHtml "Users mentioned in chat"
     forM_ items $ \(conv, ms) -> H.tr $ do
-      let ds = getDialogStats conv ms
+      let ds = getDialogStats ms
       let start = shortUnixTimeHtml $ mDate $ last ms
       let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let cap = groupCaptionHtml conv
