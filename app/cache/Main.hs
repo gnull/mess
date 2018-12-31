@@ -6,9 +6,20 @@ module Main where
 import Prelude hiding (readFile)
 
 import Data.Maybe (fromJust)
+import Data.List (genericLength)
 import Control.Monad (forM_)
 import System.FilePath ((</>), takeDirectory)
 import System.Directory (createDirectoryIfMissing)
+
+import qualified System.Console.AsciiProgress as AP
+  ( ProgressBar(..)
+  , Options(..)
+  , tick
+  , newProgressBar
+  , displayConsoleRegions
+  )
+
+import Data.Default (Default(..))
 
 import Network.Wreq (get, responseBody)
 import Control.Lens ((^.))
@@ -59,15 +70,21 @@ getURIPath p = (uriRegName a ++ uriPort a) </> (dropWhile (== '/') $ uriPath u)
     u = fromJust $ parseAbsoluteURI p
     a = fromJust $ uriAuthority u
 
+processUrl :: AP.ProgressBar -> FilePath -> FilePath -> IO ()
+processUrl pb wd u = do
+  b <- getHTTP u
+  let f = wd </> getURIPath u
+  let d = takeDirectory f
+  createDirectoryIfMissing True d
+  Data.ByteString.Lazy.writeFile f b
+  AP.tick pb
+
 main :: IO ()
 main = do
   Options {..} <- optparser
   urls <- getSnapshotUrls <$> decode <$> readFile inFile
   let index = unlines $ flip map urls $ \u -> u ++ " " ++ getURIPath u
   Prelude.writeFile (outDir </> "index.txt") index
-  forM_ urls $ \u -> do
-    b <- getHTTP u
-    let f = outDir </> getURIPath u
-    let d = takeDirectory f
-    createDirectoryIfMissing True d
-    Data.ByteString.Lazy.writeFile f b
+  AP.displayConsoleRegions $ do
+    pb <- AP.newProgressBar $ def { AP.pgTotal = genericLength urls }
+    forM_ urls $ processUrl pb outDir
