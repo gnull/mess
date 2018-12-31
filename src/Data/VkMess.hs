@@ -15,6 +15,7 @@ module Data.VkMess
   , DialogStats(..), getDialogStats
   , Conversation(..), Conversations(..)
   , convTitle, convExtId
+  , getSnaphotUrls
   ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -32,7 +33,8 @@ import Data.Monoid (Sum(..))
 import Generics.Deriving.Monoid (memptydefault, mappenddefault)
 
 import Data.Foldable (toList)
-import Data.Set (Set, singleton)
+import Data.Set (Set, singleton, fromList)
+import Data.List (sort)
 import Control.Monad (forM, liftM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -216,3 +218,18 @@ getDialogStats conv = foldMap f
       usersSeen <- singleton <$> mUser
       sub <- getDialogStats conv <$> mFwd
       return $ mappend sub $ DialogStats {..}
+
+getSnaphotUrls :: Snapshot -> [FilePath]
+getSnaphotUrls (Snapshot {..})
+  = toList $ fromList $ flip concatMap sDialogs
+  $ \(d, ms) -> convUrl d ++ concatMap messageUrls ms
+  where
+    convUrl (ConvUser _ _ p) = [p]
+    convUrl _ = []
+    messageUrls m = (concatMap attachmentUrls $ mAtt m)
+                 ++ (concatMap messageUrls $ mFwd m)
+    attachmentUrls (Photo xs) = [snd $ head $ reverse $ sort $ xs]
+    attachmentUrls (Sticker x) = [x]
+    attachmentUrls (Link _ _ _) = []
+    attachmentUrls (AudioMsg x) = [x]
+    attachmentUrls (Other _) = []
