@@ -22,13 +22,15 @@ import Web.VKHS
   ( runVK
   , defaultOptions
   , apiSimple
-  , apiR
+  , api1
   , API
   , MonadAPI
   , GenericOptions(..)
   , UserRecord
   , MethodName
   , getCurrentUser
+  , Verbosity(..)
+  , uid_id
   )
 import Web.VKHS.API.Types (Sized(..), UserRecord(..))
 
@@ -45,7 +47,7 @@ import Data.VkMess
   )
 
 apiSimpleNew :: (MonadAPI m x s, FromJSON a) => MethodName -> [(String, Text)] -> API m x a
-apiSimpleNew nm args = apiR nm (("v", "5.92"):args)
+apiSimpleNew nm args = api1 nm (("v", "5.92"):args)
 
 getDialogR :: (MonadAPI m x s) => Int -> Int -> Int -> API m x (Sized [Message])
 getDialogR peer from count = apiSimple
@@ -103,14 +105,14 @@ getChats us | length us <= 1000 =
     in  do { l' <- getChats l; r' <- getChats r; return $ l' ++ r'}
 
 getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
-getNames us = map (fromInteger . ur_id &&& extractName) <$> getUsers us where
+getNames us = map (fromInteger . (uid_id . ur_uid) &&& extractName) <$> getUsers us where
   extractName u = unpack (ur_first_name u) ++ " " ++ unpack (ur_last_name u)
 
 data Options = Options
   { outFile  :: FilePath
   , email    :: Maybe String
   , pass     :: Maybe String
-  , verb     :: Bool
+  , verb     :: Verbosity
   }
 
 sample :: Parser Options
@@ -118,10 +120,14 @@ sample = do
   outFile <- argument str $
               metavar "FILE"
           <> help "Output file"
-  verb <- switch $
-             long "verbose"
-          <> short 'v'
-          <> help "Enable verbose output"
+  verb <- (flag' Debug $
+               long "debug"
+            <> short 'd'
+            <> help "Enable debug output")
+          <|> (flag Normal Trace $
+               long "verbose"
+            <> short 'v'
+            <> help "Enable verbose (trace) output")
   email <- optional $ strOption $
              long "login"
           <> short 'l'
@@ -153,7 +159,7 @@ nub' = map head . group . sort
 main :: IO ()
 main = do
   Options {..} <- optparser
-  let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbose = verb,
+  let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbosity = verb,
     l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
   x <- runVK myOptions $ do
     ds <- getAllConversations
@@ -162,7 +168,7 @@ main = do
       pure (d, ms)
     let cIds = mapMaybe (extractChat . fst) ms
     chats <- map (fromInteger . cId &&& id) <$> getChats cIds
-    self <- fromInteger <$> ur_id <$> getCurrentUser
+    self <- fromInteger <$> (uid_id . ur_uid) <$> getCurrentUser
     let ids = nub'  $ self
                     : (concatMap getAllAddressees $ Prelude.concat $ map snd ms)
                    ++ (chats >>= \(_, x) -> cAdmin x : cUsers x)

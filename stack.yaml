@@ -38,8 +38,8 @@ resolver: lts-9.0
 packages:
 - .
 - location:
-    git: https://github.com/grwlf/vkhs.git
-    commit: 5d22aab8c023010cd3f095b0cd6d8e759a4fa694
+    git: https://github.com/gnull/vkhs.git
+    commit: 72516113e913405cf43e7605a275ba89fb2d3c50
   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
@@ -51,6 +51,7 @@ extra-deps:
 - file-embed-0.0.11
 - generic-deriving-1.12.2@sha256:df0922a14591489c67d6938fec5d6dc4aebb3f50b1c25cf940016893af07223f
 - th-abstraction-0.2.9.0@sha256:f6e93b935ea3e9adb7c83e65f711b7c77affd8d0c505a68c7c4775f7cdb659b3
+- flippers-1.0.1@sha256:e908ada5c891a6ac39cefb7e41648606d1a5f1b1048281f93bd496c5f22d73b4
 
 # Override default flag values for local packages and extra-deps
 flags: {}
