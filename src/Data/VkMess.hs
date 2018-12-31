@@ -15,7 +15,7 @@ module Data.VkMess
   , DialogStats(..), getDialogStats
   , Conversation(..), Conversations(..)
   , convTitle, convExtId
-  , getSnaphotUrls
+  , getSnapshotUrls
   ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -219,8 +219,8 @@ getDialogStats = foldMap f
       sub <- getDialogStats <$> mFwd
       return $ mappend sub $ DialogStats {..}
 
-getSnaphotUrls :: Snapshot -> [FilePath]
-getSnaphotUrls (Snapshot {..})
+getSnapshotUrls :: Snapshot -> [FilePath]
+getSnapshotUrls (Snapshot {..})
   = toList $ fromList $ flip concatMap sDialogs
   $ \(d, ms) -> convUrl d ++ concatMap messageUrls ms
   where
