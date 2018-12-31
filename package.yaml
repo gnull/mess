@@ -21,7 +21,7 @@ dependencies:
 - file-embed >=0.0 && <1
 - containers >=0.5 && <1
 - generic-deriving >=1.12 && <2
-- wreq >=0.5 && <1
+- wreq >=0.5.2 && <1
 - lens >=4.15 && <5
 - network-uri >=2.6 && <3
 - SafeSemaphore >=0.10 && <1
@@ -29,6 +29,7 @@ dependencies:
 - directory >=1.3 && <2
 - ascii-progress >=0.3 && <1
 - data-default >=0.7 && < 1
+- async >=2.1 && <3
 - VKHS
 ghc-options:
 - -Wall
@@ -48,6 +49,9 @@ executables:
     source-dirs: app/fetch/
     dependencies: mess
   mess-cache:
+    ghc-options:
+    - -threaded
+    - -with-rtsopts=-N
     main: Main.hs
     source-dirs: app/cache/
     dependencies: mess
