@@ -21,6 +21,8 @@ dependencies:
 - file-embed >=0.0 && <1
 - containers >=0.5 && <1
 - generic-deriving >=1.12 && <2
+- wreq >=0.5 && <1
+- lens >=4.15 && <5
 - VKHS
 library:
   source-dirs: src
@@ -36,4 +38,8 @@ executables:
   mess-fetch:
     main: Main.hs
     source-dirs: app/fetch/
+    dependencies: mess
+  mess-cache:
+    main: Main.hs
+    source-dirs: app/cache/
     dependencies: mess
