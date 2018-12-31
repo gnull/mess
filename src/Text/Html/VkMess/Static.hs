@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wall  #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Text.Html.VkMess.Static (globalCSS) where

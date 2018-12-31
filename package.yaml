@@ -24,6 +24,8 @@ dependencies:
 - wreq >=0.5 && <1
 - lens >=4.15 && <5
 - VKHS
+ghc-options:
+- -Wall
 library:
   source-dirs: src
   exposed-modules:
