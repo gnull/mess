@@ -6,7 +6,7 @@ module Text.Html.VkMess where
 import Control.Monad (forM_)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Char8 (unpack)
-import qualified Data.ByteString.Lazy.Char8 (unpack)
+import Data.Text.Lazy.Encoding (decodeUtf8)
 
 import Data.Aeson (decode, Object)
 import Data.Aeson.Encode.Pretty (encodePretty)
@@ -90,7 +90,7 @@ spoiler :: String -> Html -> Html
 spoiler s b = H.details $ H.summary (toHtml s) <> b
 
 prettyJsonHtml :: ByteString -> Html
-prettyJsonHtml = H.pre . toHtml . Data.ByteString.Lazy.Char8.unpack
+prettyJsonHtml = H.pre . toHtml . decodeUtf8
                . (encodePretty :: Object -> ByteString) . fromJust . decode
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
