@@ -13,6 +13,7 @@ dependencies:
 - text >=1.2 && <2
 - unix-time >=0.3 && <1
 - aeson >=1.1 && <2
+- aeson-pretty >=0.8 && <1
 - bytestring >=0.10 && <1
 - binary >=0.8 && <1
 - optparse-applicative >=0.13 && <1

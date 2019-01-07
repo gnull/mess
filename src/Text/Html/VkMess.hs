@@ -4,8 +4,12 @@
 module Text.Html.VkMess where
     
 import Control.Monad (forM_)
+import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy.Char8 (unpack)
+
+import Data.Aeson (decode, Object)
+import Data.Aeson.Encode.Pretty (encodePretty)
 
 import Data.List (sort, intersperse)
 import Data.Bool (bool)
@@ -43,6 +47,7 @@ import Text.Blaze.Html5 as H
   , img
   , audio
   , source
+  , summary, details
   )
 
 import Text.Blaze.Html5.Attributes (src, class_, href, charset, controls, type_)
@@ -74,11 +79,19 @@ attachmentHtml (AudioMsg u) = H.span
                             $ H.audio ! controls ""
                             $ do source ! src (stringValue u) ! type_ "audio/mpeg"
                                  toHtml ("Your browser does not support the audio element." :: String)
-attachmentHtml (Other x) = H.span ! class_ "attachmentOther" $ H.pre $ toHtml $ Data.ByteString.Lazy.Char8.unpack x
+attachmentHtml (Other x) = H.span ! class_ "attachmentOther"
+                         $ spoiler "Attachment" $ prettyJsonHtml x
 
 messageStyle :: Bool -> Attribute
 messageStyle isTo =
   class_ $ "messageContainer " `mappend` bool "messageFrom" "messageTo" isTo
+
+spoiler :: String -> Html -> Html
+spoiler s b = H.details $ H.summary (toHtml s) <> b
+
+prettyJsonHtml :: ByteString -> Html
+prettyJsonHtml = H.pre . toHtml . Data.ByteString.Lazy.Char8.unpack
+               . (encodePretty :: Object -> ByteString) . fromJust . decode
 
 messageHtml :: [(UserId, String)] -> UserId -> Message -> Html
 messageHtml us s (Message {..}) = do
@@ -91,6 +104,8 @@ messageHtml us s (Message {..}) = do
     H.div $ mapM_ attachmentHtml mAtt
     H.div ! class_ "forwardedContainer" $
       forM_ mFwd $ messageHtml us s
+    H.div ! class_ "rawContainer" $
+      spoiler "Raw JSON" $ prettyJsonHtml $ mJson
 
 dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> (Conversation, [Message]) -> Html
 dialogHtml us _ s (conv, ms) = docTypeHtml $ do
