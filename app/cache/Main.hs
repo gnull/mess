@@ -111,6 +111,9 @@ main = do
   sem <- MSem.new jobs
   ses <- newMVar =<< replicateM jobs newAPISession
   AP.displayConsoleRegions $ do
-    pb <- AP.newProgressBar $ def { AP.pgTotal = genericLength urls }
+    pb <- AP.newProgressBar $ def
+       { AP.pgTotal = genericLength urls
+       , AP.pgFormat = "Caching files :percent [:bar] :current/:total (for :elapsed, :eta remaining)"
+       }
     as <- forM urls $ async . MSem.with sem . withMVar ses . processUrl pb outDir
     forM_ as wait

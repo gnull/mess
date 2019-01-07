@@ -172,7 +172,10 @@ main = do
     l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
   x <- AP.displayConsoleRegions $ runVK myOptions $ do
     ds <- getAllConversations
-    pb <- liftIO $ AP.newProgressBar $ def { AP.pgTotal = genericLength ds }
+    pb <- liftIO $ AP.newProgressBar $ def
+       { AP.pgTotal = genericLength ds
+       , AP.pgFormat = "Fetching conversations :percent [:bar] :current/:total (for :elapsed, :eta remaining)"
+       }
     ms <- forM ds $ \d -> do
       ms <- getWholeDialog $ convExtId d
       liftIO $ AP.tick pb
