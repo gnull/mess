@@ -10,7 +10,7 @@ import Data.List (genericLength)
 import Control.Monad (forM_, forM, replicateM)
 import Control.Arrow ((&&&))
 import System.FilePath ((</>), takeDirectory)
-import System.Directory (createDirectoryIfMissing)
+import System.Directory (createDirectoryIfMissing, createDirectory)
 
 import qualified System.Console.AsciiProgress as AP
   ( ProgressBar(..)
@@ -106,6 +106,7 @@ main = do
   Options {..} <- optparser
   urls <- getSnapshotUrls <$> decode <$> readFile inFile
   let index = unlines $ flip map urls $ \u -> u ++ " " ++ getURIPath u
+  createDirectory outDir
   Prelude.writeFile (outDir </> "index.txt") index
   sem <- MSem.new jobs
   ses <- newMVar =<< replicateM jobs newAPISession
