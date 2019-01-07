@@ -8,13 +8,23 @@ import Prelude hiding (writeFile)
 
 import Control.Arrow ((&&&))
 import Control.Monad (forM)
+import Control.Monad.IO.Class (liftIO)
 import Data.Binary (encode)
-import Data.List (intersperse, group, sort)
+import Data.List (intersperse, group, sort, genericLength)
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Text (pack, unpack, concat, Text)
 
 import Options.Applicative
 import Data.Semigroup((<>))
+
+import qualified System.Console.AsciiProgress as AP
+  ( tick
+  , Options(..)
+  , newProgressBar
+  , displayConsoleRegions
+  )
+
+import Data.Default (Default(..))
 
 import Data.Aeson (FromJSON)
 import Web.VKHS
@@ -160,10 +170,12 @@ main = do
   Options {..} <- optparser
   let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbosity = verb,
     l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
-  x <- runVK myOptions $ do
+  x <- AP.displayConsoleRegions $ runVK myOptions $ do
     ds <- getAllConversations
+    pb <- liftIO $ AP.newProgressBar $ def { AP.pgTotal = genericLength ds }
     ms <- forM ds $ \d -> do
       ms <- getWholeDialog $ convExtId d
+      liftIO $ AP.tick pb
       pure (d, ms)
     let cIds = mapMaybe (extractChat . fst) ms
     chats <- map (fromInteger . cId &&& id) <$> getChats cIds
