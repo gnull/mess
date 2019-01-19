@@ -165,29 +165,40 @@ getAllAddressees m = mUser m : concatMap getAllAddressees (mFwd m)
 nub' :: Ord a => [a] -> [a]
 nub' = map head . group . sort
 
+
+
+
+fetch :: MonadAPI m x s
+      => (Integer -> IO a) -- Initialize progress bar of given width
+      -> (a -> IO ())              -- «Tick» — move progress bar by one width unit
+      -> API m x Snapshot
+fetch initPB tick = do
+  ds <- getAllConversations
+  pb <- liftIO $ initPB $ genericLength ds
+  ms <- forM ds $ \d -> do
+    ms <- getWholeDialog $ convExtId d
+    liftIO $ tick pb
+    pure (d, ms)
+  let cIds = mapMaybe (extractChat . fst) ms
+  chats <- map (fromInteger . cId &&& id) <$> getChats cIds
+  self <- fromInteger <$> (uid_id . ur_uid) <$> getCurrentUser
+  let ids = nub'  $ self
+                  : (concatMap getAllAddressees $ Prelude.concat $ map snd ms)
+                 ++ (chats >>= \(_, x) -> cAdmin x : cUsers x)
+  names <- getNames ids
+  pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names, sChats = chats }
+
 main :: IO ()
 main = do
   Options {..} <- optparser
   let myOptions = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbosity = verb,
     l_username = fromMaybe "" email, l_password = fromMaybe "" pass}
-  x <- AP.displayConsoleRegions $ runVK myOptions $ do
-    ds <- getAllConversations
-    pb <- liftIO $ AP.newProgressBar $ def
-       { AP.pgTotal = genericLength ds
-       , AP.pgFormat = "Fetching conversations :percent [:bar] :current/:total (for :elapsed, :eta remaining)"
-       }
-    ms <- forM ds $ \d -> do
-      ms <- getWholeDialog $ convExtId d
-      liftIO $ AP.tick pb
-      pure (d, ms)
-    let cIds = mapMaybe (extractChat . fst) ms
-    chats <- map (fromInteger . cId &&& id) <$> getChats cIds
-    self <- fromInteger <$> (uid_id . ur_uid) <$> getCurrentUser
-    let ids = nub'  $ self
-                    : (concatMap getAllAddressees $ Prelude.concat $ map snd ms)
-                   ++ (chats >>= \(_, x) -> cAdmin x : cUsers x)
-    names <- getNames ids
-    pure $ Snapshot { sDialogs = ms, sSelf = self, sUsers = names, sChats = chats }
+  x <- AP.displayConsoleRegions $ runVK myOptions $ fetch initPB AP.tick
   case x of
     (Left e) -> putStrLn $ show e
     (Right s) -> writeFile outFile $ encode s
+  where
+    initPB n = liftIO $ AP.newProgressBar
+           $ def { AP.pgTotal = n
+                 , AP.pgFormat = "Fetching conversations :percent [:bar] :current/:total (for :elapsed, :eta remaining)"
+                 }
