@@ -3,8 +3,8 @@ resolver: lts-9.0
 packages:
 - .
 - location:
-    git: https://github.com/grwlf/vkhs.git
-    commit: 4c2a83684848eb68edba05d7c48f67b36ee4b92f
+    git: https://github.com/gnull/vkhs.git
+    commit: a3048d36d34efb36812e8e678ff73b97f11511e5
   extra-dep: true
 
 extra-deps:
