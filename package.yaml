@@ -38,6 +38,7 @@ library:
   source-dirs: src
   exposed-modules:
   - Data.VkMess
+  - App.Fetch
   - Text.Html.VkMess
   - Text.Html.VkMess.Static
 executables:
