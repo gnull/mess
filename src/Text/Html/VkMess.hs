@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Text.Html.VkMess where
+module Text.Html.VkMess
+  ( mainHtml
+  , dialogHtml
+  , convPath
+  ) where
     
 import Control.Monad (forM_, when)
 import Data.ByteString.Lazy (ByteString)
@@ -149,6 +153,7 @@ groupUsers cs g = case g of
   (ConvChat x _) -> cUsers $ fromJust $ lookup x cs
   _ -> []
 
+-- Users which should be hidden from «Mentioned» list
 mentionedToHide :: UserId -> [(ChatId, ChatRecord)] -> Conversation -> [UserId]
 mentionedToHide self cs g = self : case g of
   (ConvChat x _) -> cUsers $ fromJust $ lookup x cs -- Oops, this is duplicate of groupUsers
