@@ -3,7 +3,7 @@
 
 module Text.Html.VkMess where
     
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.ByteString.Lazy (ByteString)
 import Data.ByteString.Char8 (unpack)
 import Data.Text.Lazy.Encoding (decodeUtf8)
@@ -145,8 +145,13 @@ groupCaptionHtml g =  case g of
   where wrap = (a ! hrefFor g) . toHtml
 
 groupUsers :: [(ChatId, ChatRecord)] -> Conversation -> [UserId]
-groupUsers cs g =  case g of
+groupUsers cs g = case g of
   (ConvChat x _) -> cUsers $ fromJust $ lookup x cs
+  _ -> []
+
+mentionedToHide :: UserId -> [(ChatId, ChatRecord)] -> Conversation -> [UserId]
+mentionedToHide self cs g = self : case g of
+  (ConvChat x _) -> cUsers $ fromJust $ lookup x cs -- Oops, this is duplicate of groupUsers
   (ConvUser x _ _) -> [x]
   _ -> []
 
@@ -174,14 +179,14 @@ mainHtml us cs self items = docTypeHtml $ do
       let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
       let cap = groupCaptionHtml conv
       let members = groupUsers cs conv
-      let det = usersHtml us members
+      let mentioned = toList
+                    $ (`difference` (fromList $ mentionedToHide self cs conv))
+                    $ usersSeen ds
       H.td cap
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
       H.td $ do
-        H.p $ stringToHtml "Members: " <> det
-        H.p $ do
-          stringToHtml "Mentioned: "
-          usersHtml us $ toList
-                       $ (flip difference $ fromList (self:members))
-                       $ usersSeen ds
+        when (not $ null members)
+          $ H.p $ stringToHtml "Members: " <> usersHtml us members
+        when (not $ null mentioned)
+          $ H.p $ stringToHtml "Mentioned: " <> usersHtml us mentioned
