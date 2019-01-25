@@ -127,34 +127,19 @@ convPath (ConvEmail i) = "email-" ++ show i ++ ".html"
 hrefFor :: Conversation -> Attribute
 hrefFor = href . toValue . convPath
 
-emojiHtml :: String -> Html
-emojiHtml = preEscapedToHtml
-
--- Variuos emojis
-clippyEmoji :: Html
-clippyEmoji = emojiHtml "&#x1F4CE;"      -- An 📎
-envelopeEmoji :: Html
-envelopeEmoji = emojiHtml "&#x1F4E8;"    -- An ✉️
-globeEmoji :: Html
-globeEmoji = emojiHtml "&#x1F30F;"       -- A 🌏
-speakingEmoji :: Html
-speakingEmoji = emojiHtml "&#x1F5E3;"    -- A 🗣️
-bustsEmoji :: Html
-bustsEmoji = emojiHtml "&#x1F465;"       -- A 👥
-
 statsHtml :: DialogStats -> Html
 statsHtml ds = do
     H.p $ do
-      clippyEmoji
-      toHtml $ ": " ++ (show $ getSum $ attachmentCount ds)
+      stringToHtml "attachments: "
+      toHtml $ show $ getSum $ attachmentCount ds
     H.p $ do
-      envelopeEmoji
-      toHtml $ ": " ++ (show $ getSum $ sentCount ds) ++ "/" ++ (show $ getSum $ totalCount ds)
+      stringToHtml "forwarded: "
+      toHtml $ (show $ getSum $ sentCount ds) ++ "/" ++ (show $ getSum $ totalCount ds)
 
 groupCaptionHtml :: Conversation -> Html
 groupCaptionHtml g =  case g of
   (ConvUser _ n i) -> img ! src (toValue i) ! class_ "profileAvatar" <> wrap n
-  (ConvChat _ t) ->  ((globeEmoji <> stringToHtml " ") <>) $ wrap t
+  (ConvChat _ t) ->  (stringToHtml "[chat] " <>) $ wrap t
   (ConvGroup _ n) -> wrap n
   (ConvEmail i) -> wrap $ "Email #" ++ show i
   where wrap = (a ! hrefFor g) . toHtml
@@ -179,12 +164,10 @@ mainHtml us cs self items = docTypeHtml $ do
     tr $ do
       H.th ! class_ "captionColumn" $ stringToHtml "Chat"
       H.th ! class_ "statsColumn" $ do
-        H.p $ clippyEmoji <> stringToHtml "Attachments"
-        H.p $ envelopeEmoji <> stringToHtml "Sent/total messages"
+        H.p $ stringToHtml "Conversation Stats"
       H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
       H.th ! class_ "usersColumn" $ do
-        H.p $ bustsEmoji <> stringToHtml "Group chat members"
-        H.p $ speakingEmoji <> stringToHtml "Users mentioned in chat"
+        H.p $ stringToHtml "Users"
     forM_ items $ \(conv, ms) -> H.tr $ do
       let ds = getDialogStats ms
       let start = shortUnixTimeHtml $ mDate $ last ms
@@ -196,10 +179,9 @@ mainHtml us cs self items = docTypeHtml $ do
       H.td $ statsHtml ds
       H.td $ start <> stringToHtml " … " <> end
       H.td $ do
-        H.p $ bustsEmoji <> stringToHtml ": " <> det
+        H.p $ stringToHtml "Members: " <> det
         H.p $ do
-          speakingEmoji
-          stringToHtml ": "
+          stringToHtml "Mentioned: "
           usersHtml us $ toList
                        $ (flip difference $ fromList (self:members))
                        $ usersSeen ds
