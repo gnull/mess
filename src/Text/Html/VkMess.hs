@@ -139,8 +139,8 @@ statsHtml ds = do
 groupCaptionHtml :: Conversation -> Html
 groupCaptionHtml g =  case g of
   (ConvUser _ n i) -> img ! src (toValue i) ! class_ "profileAvatar" <> wrap n
-  (ConvChat _ t) ->  (stringToHtml "[chat] " <>) $ wrap t
-  (ConvGroup _ n) -> wrap n
+  (ConvChat _ t) ->  stringToHtml "[chat] " <> wrap t
+  (ConvGroup _ n) -> stringToHtml "[group] " <> wrap n
   (ConvEmail i) -> wrap $ "Email #" ++ show i
   where wrap = (a ! hrefFor g) . toHtml
 
@@ -162,9 +162,9 @@ mainHtml us cs self items = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   body $ H.table $ do
     tr $ do
-      H.th ! class_ "captionColumn" $ stringToHtml "Chat"
+      H.th ! class_ "captionColumn" $ stringToHtml "Conversation"
       H.th ! class_ "statsColumn" $ do
-        H.p $ stringToHtml "Conversation Stats"
+        H.p $ stringToHtml "Stats"
       H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
       H.th ! class_ "usersColumn" $ do
         H.p $ stringToHtml "Users"
