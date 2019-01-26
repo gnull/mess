@@ -53,7 +53,7 @@ data Conversation = ConvUser UserId String FilePath  -- user + name + photo
                   | ConvChat ChatId String           -- chat + title
                   | ConvGroup GroupId String         -- group + title
                   | ConvEmail EmailId                -- email
-  deriving (Show, Generic)
+  deriving (Show, Eq, Generic)
 
 convTitle :: Conversation -> String
 convTitle (ConvUser _ n _) = n

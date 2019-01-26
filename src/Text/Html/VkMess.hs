@@ -4,6 +4,8 @@
 module Text.Html.VkMess
   ( mainHtml
   , dialogHtml
+  , messagesHtml
+  , standalone
   , convPath
   ) where
     
@@ -15,12 +17,14 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Aeson (decode, Object)
 import Data.Aeson.Encode.Pretty (encodePretty)
 
-import Data.List (sort, intersperse)
+import Data.List (sort, intersperse, groupBy)
+import Data.Function (on)
 import Data.Bool (bool)
 import Data.Foldable (fold, toList)
 import Data.Maybe (fromMaybe, fromJust)
 import Data.Set (difference, fromList)
 import Data.Monoid (Sum(..))
+import Control.Arrow ((&&&))
 
 import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
 import Data.VkMess
@@ -171,6 +175,7 @@ mainHtml us cs self items = docTypeHtml $ do
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
   body $ H.table $ do
+    H.a ! href "messages.html" $ stringToHtml "All messages in chronological order"
     tr $ do
       H.th ! class_ "captionColumn" $ stringToHtml "Conversation"
       H.th ! class_ "statsColumn" $ do
@@ -195,3 +200,23 @@ mainHtml us cs self items = docTypeHtml $ do
           $ H.p $ stringToHtml "Members: " <> usersHtml us members
         when (not $ null mentioned)
           $ H.p $ stringToHtml "Mentioned: " <> usersHtml us mentioned
+
+
+-- Whrap body html to produce a standalone HTML-document
+-- TODO: Rewrite mainHtml and dialogHtml using this
+standalone :: String -> Html -> Html
+standalone title_ body_ = docTypeHtml $ do
+  H.head $ do
+    H.title $ toHtml title_
+    H.meta ! charset "UTF-8"
+    H.style $ preEscapedToHtml globalCSS
+  H.body body_
+
+messagesHtml :: [(UserId, String)] -> UserId -> [(Conversation, Message)] -> Html
+messagesHtml us self items = do
+  let gs = map (fst . Prelude.head &&& map snd) $ groupBy ((==) `on` fst) items
+  H.div ! class_ "dialogContainer" $ do
+    forM_ gs $ \(conv, ms) ->
+      H.div ! class_ "convContainer" $ do
+        H.div ! class_ "groupCaption" $ groupCaptionHtml conv
+        H.div $ mapM_ (messageHtml us self) ms
