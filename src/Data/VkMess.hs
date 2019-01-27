@@ -31,6 +31,8 @@ import Data.Maybe (fromMaybe, fromJust, catMaybes)
 import Data.Bool (bool)
 import Data.Monoid (Sum(..))
 
+import Data.Map as M (fromList, lookup)
+
 import Control.Monad.Writer (Writer, tell)
 
 -- For deriving Monod instances
@@ -90,10 +92,10 @@ instance FromJSON Conversations where
           ConvChat <$> p .: "local_id" <*> cs .: "title"
         "user" -> do
           i' <- p .: "local_id"
-          return $ uncurry (ConvUser i') <$> fromJust $ lookup i' profs
+          return $ uncurry (ConvUser i') <$> fromJust $ Prelude.lookup i' profs
         "group" -> do
           i' <- p .: "local_id"
-          return $ ConvGroup i' $ fromJust $ lookup i' groups
+          return $ ConvGroup i' $ fromJust $ Prelude.lookup i' groups
         "email" -> ConvEmail <$> p .: "local_id"
         _ -> fail "Unexpected conversation type"
     where
@@ -227,7 +229,7 @@ getDialogStats = foldMap f
 
 getSnapshotUrls :: Snapshot -> [FilePath]
 getSnapshotUrls (Snapshot {..})
-  = toList $ fromList $ flip concatMap sDialogs
+  = toList $ Data.Set.fromList $ flip concatMap sDialogs
   $ \(d, ms) -> convUrl d ++ concatMap messageUrls ms
   where
     convUrl (ConvUser _ _ p) = [p]
@@ -241,9 +243,11 @@ getSnapshotUrls (Snapshot {..})
     attachmentUrls (Other _) = []
 
 listToWriter :: [(FilePath, FilePath)] -> FilePath -> Writer [FilePath] FilePath
-listToWriter xs k = case lookup k xs of
-  Just x -> pure x
-  Nothing -> tell [k] >> pure k
+listToWriter xs k = case M.lookup k m of
+    Just x -> pure x
+    Nothing -> tell [k] >> pure k
+  where
+    m = M.fromList xs
 
 replaceSnapshotUrls :: (FilePath -> Writer [FilePath] FilePath) -> Snapshot -> Writer [FilePath] Snapshot
 replaceSnapshotUrls m ss = do
