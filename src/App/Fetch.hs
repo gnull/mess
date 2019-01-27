@@ -74,23 +74,27 @@ getAllConversations = f 0 where
           mss' <- f (from + 200)
           return $ mss ++ mss'
 
--- users.get allows up to 1000 ids, make sure you do no pass more
+-- users.get and messages.getChat allow up to 1000 ids to be passed in a single
+-- request. But we make sure we do not pass more than 200, because at 1000 the
+-- vk.com is giving error on request URL being too long. Maybe that's a
+-- limitation of HTTP protocol or particular HTTP software at vk.com servers.
+
 getUsers :: MonadAPI m x s => [UserId] -> API m x [UserRecord]
 getUsers [] = return []
-getUsers us | length us <= 1000 =
+getUsers us | length us <= 200 =
     let ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
     in  apiSimple "users.get" [("user_ids", ids)]
             | otherwise         =
-    let (l, r) = splitAt 1000 us
+    let (l, r) = splitAt 200 us
     in  do { l' <- getUsers l; r' <- getUsers r; return $ l' ++ r'}
 
 getChats :: MonadAPI m x s => [ChatId] -> API m x [ChatRecord]
 getChats [] = return []
-getChats us | length us <= 1000 =
+getChats us | length us <= 200 =
     let ids = Data.Text.concat $ map pack $ intersperse "," $ map show us
     in  apiSimple "messages.getChat" [("chat_ids", ids)]
             | otherwise         =
-    let (l, r) = splitAt 1000 us
+    let (l, r) = splitAt 200 us
     in  do { l' <- getChats l; r' <- getChats r; return $ l' ++ r'}
 
 getNames :: MonadAPI m x s => [UserId] -> API m x [(UserId, String)]
