@@ -7,7 +7,7 @@ import Prelude hiding (writeFile)
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Control.Monad.Writer (runWriter)
 import Control.Arrow (second)
 import Data.Binary (decode)
@@ -65,9 +65,10 @@ main = do
     Just d -> listToWriter <$> map (second (d </>)) <$> map (\[k, v] -> (k, v))
           <$> map words <$> lines <$> Prelude.readFile (d </> "index.txt")
     Nothing -> pure pure
-  (Snapshot ms self users chats) <- fst <$> runWriter
+  (Snapshot ms self users chats, res) <- runWriter
     <$> replaceSnapshotUrls mm
     <$> decode <$> Data.VkMess.readFile inFile
+  when (not $ null res) $ putStrLn $ "warning: " ++ show (length res) ++ " urls weren't found in cache"
   writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
   writeFile "messages.html" $ renderHtml $ standalone "All messages"
                             $ messagesHtml users self

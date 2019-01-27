@@ -11,7 +11,7 @@ module Data.VkMess
   , ChatId
   , ChatRecord(..)
   , readFile, writeFile
-  , vkImageSizes, Attachment(..)
+  , Attachment(..)
   , DialogStats(..), getDialogStats
   , Conversation(..), Conversations(..)
   , convTitle, convExtId
