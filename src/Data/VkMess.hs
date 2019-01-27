@@ -40,9 +40,6 @@ import Generics.Deriving.Monoid (memptydefault, mappenddefault)
 
 import Data.Foldable (toList)
 import Data.Set (Set, singleton, fromList)
-import Data.List (sort, maximumBy, deleteBy)
-import Data.Ord (comparing)
-import Data.Function (on)
 import Control.Monad (forM, liftM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -127,7 +124,7 @@ instance FromJSON ChatRecord where
     cUsers <- v .: "users"
     return $ ChatRecord {..}
 
-data Attachment = Photo [(Int, FilePath)]
+data Attachment = Photo FilePath
                 | Sticker FilePath
                 | Link FilePath Text Text -- url title description
                 | AudioMsg FilePath
@@ -143,10 +140,9 @@ instance FromJSON Attachment where
     case t :: Text of
       "photo" -> do
         v' <- v .: "photo"
-        x <- forM vkImageSizes $ \s -> do
-          url <- v' .:? ("photo_" `mappend` pack (show s))
-          pure $ (,) s <$> url
-        pure $ Photo $ catMaybes x
+        x <- forM vkImageSizes $ \s ->
+          v' .:? ("photo_" `mappend` pack (show s))
+        pure $ Photo $ head $ catMaybes x
       "sticker" -> do
         v' <- v .: "sticker"
         l <- forM [256, 128, 64, 512 :: Int] $ \s -> v' .:? ("photo_" `mappend` pack (show s))
@@ -236,7 +232,7 @@ getSnapshotUrls (Snapshot {..})
     convUrl _ = []
     messageUrls m = (concatMap attachmentUrls $ mAtt m)
                  ++ (concatMap messageUrls $ mFwd m)
-    attachmentUrls (Photo xs) = [snd $ head $ reverse $ sort $ xs]
+    attachmentUrls (Photo x) = [x]
     attachmentUrls (Sticker x) = [x]
     attachmentUrls (Link _ _ _) = []
     attachmentUrls (AudioMsg x) = [x]
@@ -263,10 +259,7 @@ replaceSnapshotUrls m ss = do
       fwd <- mapM replaceMessage $ mFwd ms
       att <- mapM replaceAtt $ mAtt ms
       pure $ ms { mFwd = fwd, mAtt = att }
-    replaceAtt (Photo x) = do
-      let (i, v) = maximumBy (comparing fst) x
-      v' <- m v
-      pure $ Photo $ (i, v') : deleteBy ((==) `on` fst) (i, undefined) x
+    replaceAtt (Photo x) = Photo <$> m x
     replaceAtt (Sticker x) = Sticker <$> m x
     replaceAtt (AudioMsg x) = AudioMsg <$> m x
     replaceAtt x = pure x

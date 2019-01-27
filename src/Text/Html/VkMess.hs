@@ -77,8 +77,7 @@ shortUnixTimeHtml :: UnixTime -> Html
 shortUnixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT "%b %Y"
 
 attachmentHtml :: Attachment -> Html
-attachmentHtml (Photo xs) = H.span $ a ! href url $ H.img ! class_ "attachmentPhoto" ! src url
-  where url = (toValue $ snd $ Prelude.head $ reverse $ sort $ xs)
+attachmentHtml (Photo x) = H.span $ a ! href (toValue x) $ H.img ! class_ "attachmentPhoto" ! src (toValue x)
 attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
 attachmentHtml (Link u t d) = H.span $ do
   H.a ! (href $ stringValue u) $ toHtml t
