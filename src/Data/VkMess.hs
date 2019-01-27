@@ -16,6 +16,8 @@ module Data.VkMess
   , Conversation(..), Conversations(..)
   , convTitle, convExtId
   , getSnapshotUrls
+  , replaceSnapshotUrls
+  , listToWriter
   ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -29,12 +31,16 @@ import Data.Maybe (fromMaybe, fromJust, catMaybes)
 import Data.Bool (bool)
 import Data.Monoid (Sum(..))
 
+import Control.Monad.Writer (Writer, tell)
+
 -- For deriving Monod instances
 import Generics.Deriving.Monoid (memptydefault, mappenddefault)
 
 import Data.Foldable (toList)
 import Data.Set (Set, singleton, fromList)
-import Data.List (sort)
+import Data.List (sort, maximumBy, deleteBy)
+import Data.Ord (comparing)
+import Data.Function (on)
 import Control.Monad (forM, liftM)
 import Data.Text (Text, pack)
 import Data.UnixTime (fromEpochTime, UnixTime)
@@ -233,3 +239,30 @@ getSnapshotUrls (Snapshot {..})
     attachmentUrls (Link _ _ _) = []
     attachmentUrls (AudioMsg x) = [x]
     attachmentUrls (Other _) = []
+
+listToWriter :: [(FilePath, FilePath)] -> FilePath -> Writer [FilePath] FilePath
+listToWriter xs k = case lookup k xs of
+  Just x -> pure x
+  Nothing -> tell [k] >> pure k
+
+replaceSnapshotUrls :: (FilePath -> Writer [FilePath] FilePath) -> Snapshot -> Writer [FilePath] Snapshot
+replaceSnapshotUrls m ss = do
+    sDialogs' <- forM (sDialogs ss) $ \(conv, ms) -> do
+      conv' <- replaceConv conv
+      ms' <- mapM replaceMessage ms
+      pure (conv', ms')
+    pure $ ss { sDialogs = sDialogs' }
+  where
+    replaceConv (ConvUser i n p) = ConvUser i n <$> m p
+    replaceConv x = pure x
+    replaceMessage ms = do
+      fwd <- mapM replaceMessage $ mFwd ms
+      att <- mapM replaceAtt $ mAtt ms
+      pure $ ms { mFwd = fwd, mAtt = att }
+    replaceAtt (Photo x) = do
+      let (i, v) = maximumBy (comparing fst) x
+      v' <- m v
+      pure $ Photo $ (i, v') : deleteBy ((==) `on` fst) (i, undefined) x
+    replaceAtt (Sticker x) = Sticker <$> m x
+    replaceAtt (AudioMsg x) = AudioMsg <$> m x
+    replaceAtt x = pure x

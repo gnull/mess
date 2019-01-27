@@ -10,6 +10,7 @@ extra-source-files:
 - README.md
 dependencies:
 - base >=4.7 && <5
+- mtl >=2.2 && <3
 - text >=1.2 && <2
 - unix-time >=0.3 && <1
 - aeson >=1.1 && <2

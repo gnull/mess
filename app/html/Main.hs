@@ -1,19 +1,26 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ApplicativeDo #-}
 
 module Main where
 
-import Prelude hiding (readFile, writeFile)
+import Prelude hiding (writeFile)
 
 import Data.List (sortBy)
 import Data.Ord (comparing)
 import Control.Monad (forM_)
+import Control.Monad.Writer (runWriter)
+import Control.Arrow (second)
 import Data.Binary (decode)
+
+import System.FilePath ((</>))
 
 import Data.VkMess
   ( Snapshot(..)
   , readFile
   , writeFile
   , mDate
+  , listToWriter
+  , replaceSnapshotUrls
   )
 
 import Options.Applicative
@@ -28,20 +35,39 @@ import Text.Html.VkMess
   , standalone
   )
 
-optparser :: IO FilePath
+data Options = Options
+  { inFile :: FilePath
+  , cacheDir :: Maybe FilePath
+  }
+
+sample :: Parser Options
+sample = do
+  inFile <- argument str $
+              metavar "DUMP"
+           <> help "Input file"
+  cacheDir <- optional $ strOption $
+              long "cache"
+           <> short 'c'
+           <> help "Directory containing cache produced by mess-cache"
+  pure $ Options {..}
+
+optparser :: IO Options
 optparser = execParser opts
   where
-    opts = info (inFile <**> helper)
+    opts = info (sample <**> helper)
       ( fullDesc
      <> progDesc "Render messages fetched by mess-fetch as html")
-    inFile = argument str $
-              metavar "FILE"
-           <> help "Input file"
 
 main :: IO ()
 main = do
-  inFile <- optparser
-  (Snapshot ms self users chats) <- decode <$> readFile inFile
+  Options {..} <- optparser
+  mm <- case cacheDir of
+    Just d -> listToWriter <$> map (second (d </>)) <$> map (\[k, v] -> (k, v))
+          <$> map words <$> lines <$> Prelude.readFile (d </> "index.txt")
+    Nothing -> pure pure
+  (Snapshot ms self users chats) <- fst <$> runWriter
+    <$> replaceSnapshotUrls mm
+    <$> decode <$> Data.VkMess.readFile inFile
   writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
   writeFile "messages.html" $ renderHtml $ standalone "All messages"
                             $ messagesHtml users self
