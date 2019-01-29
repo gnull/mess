@@ -128,6 +128,9 @@ data Attachment = Photo FilePath
                 | Sticker FilePath
                 | Link FilePath Text Text -- url title description
                 | AudioMsg FilePath
+                | Wall Int Int UnixTime Text -- owner id, post id, date, text
+                | Document Text FilePath UnixTime -- owner id, id, title, url, date
+                | Video Int Int Text Text -- owner id, id, title, description
                 | Other ByteString deriving (Generic, Show)
 
 vkImageSizes :: [Int]
@@ -136,7 +139,6 @@ vkImageSizes = [2560, 1280, 807, 604, 130, 75]
 instance FromJSON Attachment where
   parseJSON = withObject "attachment" $ \v -> do
     t <- v .: "type"
-    let other = pure $ Other $ Data.Aeson.encode v
     case t :: Text of
       "photo" -> do
         v' <- v .: "photo"
@@ -150,17 +152,25 @@ instance FromJSON Attachment where
       "link" -> do
         v' <- v .: "link"
         Link <$> v' .: "url" <*> v' .: "title" <*> (fromMaybe "" <$> v' .:? "description")
+      "wall" -> do
+        v' <- v .: "wall"
+        Wall <$> v' .: "to_id" <*> v' .: "id" <*> v' .: "date" <*> v' .: "text"
+             -- <*> (fromMaybe [] <$> v' .:? "attachments")
+      "video" -> do
+        v' <- v .: "video"
+        Video <$> v' .: "owner_id" <*> v' .: "id" <*> v' .: "title" <*> v' .: "description"
       "doc" -> do
           v' <- v .: "doc"
           p <- v' .:? "preview"
+          let doc = Document <$> v' .: "title" <*> v' .: "url" <*> v' .: "date"
           case p of
-              Nothing -> other
+              Nothing -> doc
               Just p' -> do
                   a <- p' .:? "audio_msg"
                   case a of
-                      Nothing -> other
+                      Nothing -> doc
                       Just a' -> AudioMsg <$> a' .: "link_mp3"
-      _ -> other
+      _ -> pure $ Other $ Data.Aeson.encode v
 
 data Message = Message {
                  mBody :: Text
@@ -236,6 +246,9 @@ getSnapshotUrls (Snapshot {..})
     attachmentUrls (Sticker x) = [x]
     attachmentUrls (Link _ _ _) = []
     attachmentUrls (AudioMsg x) = [x]
+    attachmentUrls (Document _ x _) = [x]
+    attachmentUrls (Wall _ _ _ _) = []
+    attachmentUrls (Video _ _ _ _) = []
     attachmentUrls (Other _) = []
 
 listToWriter :: [(FilePath, FilePath)] -> FilePath -> Writer [FilePath] FilePath
@@ -262,4 +275,5 @@ replaceSnapshotUrls m ss = do
     replaceAtt (Photo x) = Photo <$> m x
     replaceAtt (Sticker x) = Sticker <$> m x
     replaceAtt (AudioMsg x) = AudioMsg <$> m x
+    replaceAtt (Document y z w) = (\z' -> Document y z' w) <$> m z
     replaceAtt x = pure x

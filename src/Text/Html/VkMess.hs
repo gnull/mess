@@ -76,17 +76,35 @@ unixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT webDateFormat
 shortUnixTimeHtml :: UnixTime -> Html
 shortUnixTimeHtml = H.span . toHtml . unpack . formatUnixTimeGMT "%b %Y"
 
+wallUrl :: Int -> Int -> FilePath
+wallUrl o i = "https://vk.com/wall" ++ show o ++ "_" ++ show i
+
+videoUrl :: Int -> Int -> FilePath
+videoUrl o i = "https://vk.com/video" ++ show o ++ "_" ++ show i
+
 attachmentHtml :: Attachment -> Html
-attachmentHtml (Photo x) = H.span $ a ! href (toValue x) $ H.img ! class_ "attachmentPhoto" ! src (toValue x)
-attachmentHtml (Sticker x) = H.span $ H.img ! (src $ stringValue x)
-attachmentHtml (Link u t d) = H.span $ do
+attachmentHtml (Photo x) = H.div ! class_ "attachment" $ a ! href (toValue x) $ H.img ! class_ "attachmentPhoto" ! src (toValue x)
+attachmentHtml (Sticker x) = H.div ! class_ "attachment" $ H.img ! (src $ stringValue x)
+attachmentHtml (Link u t d) = H.div ! class_ "attachment" $ do
   H.a ! (href $ stringValue u) $ toHtml t
   H.p $ toHtml d
-attachmentHtml (AudioMsg u) = H.span
+attachmentHtml (AudioMsg u) = H.div ! class_ "attachment"
                             $ H.audio ! controls ""
                             $ do source ! src (stringValue u) ! type_ "audio/mpeg"
                                  toHtml ("Your browser does not support the audio element." :: String)
-attachmentHtml (Other x) = H.span ! class_ "attachmentOther"
+attachmentHtml (Document t u d) = H.div ! class_ "attachment" $ do
+  a ! href (toValue u) $ do
+    stringToHtml "Document: "
+    unixTimeHtml d
+    stringToHtml " "
+    toHtml t
+attachmentHtml (Wall o i d t) = H.div ! class_ "attachment" $ do
+  a ! href (toValue $ wallUrl o i) $ stringToHtml "Wall :" <> unixTimeHtml d
+  H.p $ toHtml t
+attachmentHtml (Video o i t d) = H.div ! class_ "attachment" $ do
+  a ! href (toValue $ videoUrl o i) $ stringToHtml "Video: " <> toHtml t
+  H.p $ toHtml d
+attachmentHtml (Other x) = H.div ! class_ "attachment"
                          $ spoiler "Attachment" $ prettyJsonHtml x
 
 messageStyle :: Bool -> Attribute

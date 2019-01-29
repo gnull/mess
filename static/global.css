@@ -3,8 +3,11 @@
   max-width: 100%;
 }
 
-.attachmentOther {
+.attachment {
   border: 1px solid grey;
+  padding: 1px;
+  margin: 1px;
+  background-color: #fff987;
 }
 
 pre {
