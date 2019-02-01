@@ -28,9 +28,9 @@ import Data.Semigroup((<>))
 
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Html.VkMess
-  ( mainHtml
+  ( indexHtmlStandalone
   , convPath
-  , dialogHtml
+  , conversationHtmlStandalone
   , messagesHtml
   , standalone
   )
@@ -69,10 +69,10 @@ main = do
     <$> replaceSnapshotUrls mm
     <$> decode <$> Data.VkMess.readFile inFile
   when (not $ null res) $ putStrLn $ "warning: " ++ show (length res) ++ " urls weren't found in cache"
-  writeFile "index.html" $ renderHtml $ mainHtml users chats self ms
+  writeFile "index.html" $ renderHtml $ indexHtmlStandalone users chats self ms
   writeFile "messages.html" $ renderHtml $ standalone "All messages"
                             $ messagesHtml users self
                             $ sortBy (comparing $ mDate . snd)
                             $ concatMap (\(d, m) -> map ((,) d) m) ms
   forM_ ms $ \(d, m) -> writeFile (convPath d) $ renderHtml
-                      $ dialogHtml users chats self (d, m)
+                      $ conversationHtmlStandalone users self (d, m)

@@ -2,8 +2,10 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Text.Html.VkMess
-  ( mainHtml
-  , dialogHtml
+  ( indexHtml
+  , indexHtmlStandalone
+  , conversationHtml
+  , conversationHtmlStandalone
   , messagesHtml
   , standalone
   , convPath
@@ -132,8 +134,12 @@ messageHtml us s (Message {..}) = do
     H.div ! class_ "rawContainer" $
       spoiler "Raw JSON" $ prettyJsonHtml $ mJson
 
-dialogHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> (Conversation, [Message]) -> Html
-dialogHtml us _ s (conv, ms) = docTypeHtml $ do
+conversationHtmlStandalone :: [(UserId, String)] -> UserId -> (Conversation, [Message]) -> Html
+conversationHtmlStandalone us s convs = standalone tit $ conversationHtml us s convs
+  where tit = "«" ++ convTitle (fst convs) ++ "» — " ++ fromJust (lookup s us)
+
+conversationHtml :: [(UserId, String)] -> UserId -> (Conversation, [Message]) -> Html
+conversationHtml us s (conv, ms) = docTypeHtml $ do
   H.head $ do
     title $ toHtml
           $ "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
@@ -185,13 +191,12 @@ mentionedToHide self cs g = self : case g of
 stringToHtml :: String -> Html
 stringToHtml = toHtml
 
-mainHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Conversation, [Message])] -> Html
-mainHtml us cs self items = docTypeHtml $ do
-  H.head $ do
-    H.title $ toHtml $ fromJust $ lookup self us
-    H.meta ! charset "UTF-8"
-    H.style $ preEscapedToHtml globalCSS
-  body $ do
+indexHtmlStandalone :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Conversation, [Message])] -> Html
+indexHtmlStandalone us cs self items = standalone tit $ indexHtml us cs self items
+  where tit = fromJust $ lookup self us
+
+indexHtml :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Conversation, [Message])] -> Html
+indexHtml us cs self items = do
     H.a ! href "messages.html" $ stringToHtml "All messages in chronological order"
     H.table $ do
       tr $ do
@@ -219,9 +224,6 @@ mainHtml us cs self items = docTypeHtml $ do
           when (not $ null mentioned)
             $ H.p $ stringToHtml "Mentioned: " <> usersHtml us mentioned
 
-
--- Whrap body html to produce a standalone HTML-document
--- TODO: Rewrite mainHtml and dialogHtml using this
 standalone :: String -> Html -> Html
 standalone title_ body_ = docTypeHtml $ do
   H.head $ do
