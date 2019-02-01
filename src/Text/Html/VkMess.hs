@@ -232,11 +232,16 @@ standalone title_ body_ = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   H.body body_
 
+messagesGroup :: [(UserId, String)] -> UserId -> [Message] -> Html
+messagesGroup us self ms = H.div $ mapM_ (messageHtml us self) ms
+
+messagesGroupWithConv :: [(UserId, String)] -> UserId -> Conversation -> [Message] -> Html
+messagesGroupWithConv us self conv ms = H.div ! class_ "convContainer" $ do
+  H.div ! class_ "groupCaption" $ groupCaptionHtml conv
+  messagesGroup us self ms
+
 messagesHtml :: [(UserId, String)] -> UserId -> [(Conversation, Message)] -> Html
 messagesHtml us self items = do
   let gs = map (fst . Prelude.head &&& map snd) $ groupBy ((==) `on` fst) items
   H.div ! class_ "dialogContainer" $ do
-    forM_ gs $ \(conv, ms) ->
-      H.div ! class_ "convContainer" $ do
-        H.div ! class_ "groupCaption" $ groupCaptionHtml conv
-        H.div $ mapM_ (messageHtml us self) ms
+    forM_ gs $ \(conv, ms) -> messagesGroupWithConv us self conv ms
