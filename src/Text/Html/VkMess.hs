@@ -191,32 +191,33 @@ mainHtml us cs self items = docTypeHtml $ do
     H.title $ toHtml $ fromJust $ lookup self us
     H.meta ! charset "UTF-8"
     H.style $ preEscapedToHtml globalCSS
-  body $ H.table $ do
+  body $ do
     H.a ! href "messages.html" $ stringToHtml "All messages in chronological order"
-    tr $ do
-      H.th ! class_ "captionColumn" $ stringToHtml "Conversation"
-      H.th ! class_ "statsColumn" $ do
-        H.p $ stringToHtml "Stats"
-      H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
-      H.th ! class_ "usersColumn" $ do
-        H.p $ stringToHtml "Users"
-    forM_ items $ \(conv, ms) -> H.tr $ do
-      let ds = getDialogStats ms
-      let start = shortUnixTimeHtml $ mDate $ last ms
-      let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
-      let cap = groupCaptionHtml conv
-      let members = groupUsers cs conv
-      let mentioned = toList
-                    $ (`difference` (fromList $ mentionedToHide self cs conv))
-                    $ usersSeen ds
-      H.td cap
-      H.td $ statsHtml ds
-      H.td $ start <> stringToHtml " … " <> end
-      H.td $ do
-        when (not $ null members)
-          $ H.p $ stringToHtml "Members: " <> usersHtml us members
-        when (not $ null mentioned)
-          $ H.p $ stringToHtml "Mentioned: " <> usersHtml us mentioned
+    H.table $ do
+      tr $ do
+        H.th ! class_ "captionColumn" $ stringToHtml "Conversation"
+        H.th ! class_ "statsColumn" $ do
+          H.p $ stringToHtml "Stats"
+        H.th ! class_ "datesColumn" $ stringToHtml "Activity period"
+        H.th ! class_ "usersColumn" $ do
+          H.p $ stringToHtml "Users"
+      forM_ items $ \(conv, ms) -> H.tr $ do
+        let ds = getDialogStats ms
+        let start = shortUnixTimeHtml $ mDate $ last ms
+        let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
+        let cap = groupCaptionHtml conv
+        let members = groupUsers cs conv
+        let mentioned = toList
+                      $ (`difference` (fromList $ mentionedToHide self cs conv))
+                      $ usersSeen ds
+        H.td cap
+        H.td $ statsHtml ds
+        H.td $ start <> stringToHtml " … " <> end
+        H.td $ do
+          when (not $ null members)
+            $ H.p $ stringToHtml "Members: " <> usersHtml us members
+          when (not $ null mentioned)
+            $ H.p $ stringToHtml "Mentioned: " <> usersHtml us mentioned
 
 
 -- Whrap body html to produce a standalone HTML-document
