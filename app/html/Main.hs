@@ -30,13 +30,17 @@ import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Html.VkMess
   ( indexHtmlStandalone
   , convPath
+  , convPathNumbered
+  , chopBy
   , conversationHtmlStandalone
   , messagesWithConvHtmlStandalone
+  , contentsTableHtmlStandalone
   )
 
 data Options = Options
   { inFile :: FilePath
   , cacheDir :: Maybe FilePath
+  , pageLimit :: Int
   }
 
 sample :: Parser Options
@@ -44,10 +48,19 @@ sample = do
   inFile <- argument str $
               metavar "DUMP"
            <> help "Input file"
+           <> action "file"
   cacheDir <- optional $ strOption $
               long "cache"
            <> short 'c'
            <> help "Directory containing cache produced by mess-cache"
+           <> action "directory"
+  pageLimit <- (fmap read) $ strOption $
+              long "limit"
+           <> short 'l'
+           <> help "Maximum allowed number of messages on a single page (conversations longer than this will be split into multiple files)"
+           <> value "8000"
+           <> showDefault
+           <> completeWith ["5000", "8000", "10000"]
   pure $ Options {..}
 
 optparser :: IO Options
@@ -73,5 +86,13 @@ main = do
                             $ messagesWithConvHtmlStandalone users self
                             $ sortBy (comparing $ mDate . snd)
                             $ concatMap (\(d, m) -> map ((,) d) m) ms
-  forM_ ms $ \(d, m) -> writeFile (convPath d) $ renderHtml
-                      $ conversationHtmlStandalone users self d m
+  forM_ ms $ \(d, m) -> do
+    let ms' = chopBy pageLimit m
+    case ms' of
+      [m'] -> writeFile (convPath d) $ renderHtml $ conversationHtmlStandalone users self d m'
+      _ -> do
+        let paths = map (flip convPathNumbered d) [1..]
+        let z = zip paths ms'
+        forM_ z $ \(path, m') ->
+          writeFile path $ renderHtml $ conversationHtmlStandalone users self d m'
+        writeFile (convPath d) $ renderHtml $ contentsTableHtmlStandalone z

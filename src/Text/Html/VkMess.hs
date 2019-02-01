@@ -8,8 +8,11 @@ module Text.Html.VkMess
   , conversationHtmlStandalone
   , messagesWithConvHtml
   , messagesWithConvHtmlStandalone
+  , contentsTableHtmlStandalone
   , standalone
   , convPath
+  , convPathNumbered
+  , chopBy
   ) where
     
 import Control.Monad (forM_, when)
@@ -20,7 +23,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Aeson (decode, Object)
 import Data.Aeson.Encode.Pretty (encodePretty)
 
-import Data.List (sort, intersperse, groupBy)
+import Data.List (sort, intersperse, groupBy, unfoldr)
 import Data.Function (on)
 import Data.Bool (bool)
 import Data.Foldable (fold, toList)
@@ -29,7 +32,7 @@ import Data.Set (difference, fromList)
 import Data.Monoid (Sum(..))
 import Control.Arrow ((&&&))
 
-import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat)
+import Data.UnixTime (UnixTime, formatUnixTimeGMT, webDateFormat, diffUnixTime)
 import Data.VkMess
   ( Message(..)
   , UserId
@@ -135,19 +138,51 @@ messageHtml us s (Message {..}) = do
     H.div ! class_ "rawContainer" $
       spoiler "Raw JSON" $ prettyJsonHtml $ mJson
 
+chopBy :: Int -> [a] -> [[a]]
+chopBy x = unfoldr $ \l -> if null l then Nothing else Just (take x l, drop x l)
+
+groupBySubsequent :: (Message -> Message -> Bool) -> [Message] -> [[Message]]
+groupBySubsequent _ [] = []
+groupBySubsequent t xs = uncurry (:) $ foldr fun ([], []) xs
+  where
+    fun m (h, acc) =
+      case h of
+        [] -> ([m], [])
+        (hh:_) -> if t hh m then (m:h, acc) else ([m], h:acc)
+
+-- Join subsequent messages which were received in ≤ 6 hours from one another
+groupMessagesByTime :: [Message] -> [[Message]]
+groupMessagesByTime = groupBySubsequent $ \m m' -> abs (diffUnixTime (mDate m) (mDate m')) <= 6 * 60 * 60
+
+conversationTitle :: UserId -> [(UserId, String)] -> Conversation -> String
+conversationTitle s us conv = "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
+
 conversationHtmlStandalone :: [(UserId, String)] -> UserId -> Conversation -> [Message] -> Html
 conversationHtmlStandalone us s conv ms = standalone tit $ conversationHtml us s ms
-  where tit = "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
+  where tit = conversationTitle s us conv
 
 conversationHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
-conversationHtml us s ms = H.div ! class_ "dialogContainer"
-                                 $ mapM_ (messageHtml us s) $ reverse ms
+conversationHtml us s ms = conversationContainer $ do
+  forM_ (groupMessagesByTime $ reverse ms)
+    $ messageGroupContainer . mapM_ (messageHtml us s)
+
+contentsTableHtmlStandalone :: [(FilePath, [Message])] -> Html
+contentsTableHtmlStandalone z = standalone "Table of Contents" $
+  forM_ z $ \(path, ms) -> H.a ! href (toValue path) $
+    let (start, end) = messagesDateRange ms
+    in H.div $ start <> stringToHtml " … " <> end
+
+convPath' :: String -> Conversation -> FilePath
+convPath' s (ConvUser i _ _) = "user-" ++ show i ++ s ++ ".html"
+convPath' s (ConvChat i _) = "chat-" ++ show i ++ s ++ ".html"
+convPath' s (ConvGroup i _) = "group-" ++ show i ++ s ++ ".html"
+convPath' s (ConvEmail i) = "email-" ++ show i ++ s ++ ".html"
 
 convPath :: Conversation -> FilePath
-convPath (ConvUser i _ _) = "user-" ++ show i ++ ".html"
-convPath (ConvChat i _) = "chat-" ++ show i ++ ".html"
-convPath (ConvGroup i _) = "group-" ++ show i ++ ".html"
-convPath (ConvEmail i) = "email-" ++ show i ++ ".html"
+convPath = convPath' ""
+
+convPathNumbered :: Int -> Conversation -> FilePath
+convPathNumbered x = convPath' $ '@':show x
 
 hrefFor :: Conversation -> Attribute
 hrefFor = href . toValue . convPath
@@ -185,6 +220,12 @@ mentionedToHide self cs g = self : case g of
 stringToHtml :: String -> Html
 stringToHtml = toHtml
 
+-- TODO: Remove this function as for it and its invocations make the programm
+-- unbearably ugly
+messagesDateRange :: [Message] -> (Html, Html)
+messagesDateRange = (f . last &&& f . Prelude.head)
+  where f = shortUnixTimeHtml . mDate
+
 indexHtmlStandalone :: [(UserId, String)] -> [(ChatId, ChatRecord)] -> UserId -> [(Conversation, [Message])] -> Html
 indexHtmlStandalone us cs self items = standalone tit $ indexHtml us cs self items
   where tit = fromJust $ lookup self us
@@ -202,8 +243,7 @@ indexHtml us cs self items = do
           H.p $ stringToHtml "Users"
       forM_ items $ \(conv, ms) -> H.tr $ do
         let ds = getDialogStats ms
-        let start = shortUnixTimeHtml $ mDate $ last ms
-        let end = shortUnixTimeHtml $ mDate $ Prelude.head ms
+        let (start, end) = messagesDateRange ms
         let cap = groupCaptionHtml conv
         let members = groupUsers cs conv
         let mentioned = toList
