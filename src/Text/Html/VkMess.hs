@@ -243,6 +243,6 @@ messagesWithConvHtml :: [(UserId, String)] -> UserId -> [(Conversation, Message)
 messagesWithConvHtml us self items = do
   let gs = map (fst . Prelude.head &&& map snd) $ groupBy ((==) `on` fst) items
   conversationContainer $
-    forM_ gs $ \(conv, ms) -> conversationContainer $ do
+    forM_ gs $ \(conv, ms) -> do
       groupCaptionContainer $ groupCaptionHtml conv
       messageGroupContainer $ mapM_ (messageHtml us self) ms
