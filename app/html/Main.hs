@@ -31,8 +31,7 @@ import Text.Html.VkMess
   ( indexHtmlStandalone
   , convPath
   , conversationHtmlStandalone
-  , messagesHtml
-  , standalone
+  , messagesWithConvHtmlStandalone
   )
 
 data Options = Options
@@ -70,9 +69,9 @@ main = do
     <$> decode <$> Data.VkMess.readFile inFile
   when (not $ null res) $ putStrLn $ "warning: " ++ show (length res) ++ " urls weren't found in cache"
   writeFile "index.html" $ renderHtml $ indexHtmlStandalone users chats self ms
-  writeFile "messages.html" $ renderHtml $ standalone "All messages"
-                            $ messagesHtml users self
+  writeFile "messages.html" $ renderHtml
+                            $ messagesWithConvHtmlStandalone users self
                             $ sortBy (comparing $ mDate . snd)
                             $ concatMap (\(d, m) -> map ((,) d) m) ms
   forM_ ms $ \(d, m) -> writeFile (convPath d) $ renderHtml
-                      $ conversationHtmlStandalone users self (d, m)
+                      $ conversationHtmlStandalone users self d m

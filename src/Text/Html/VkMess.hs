@@ -6,7 +6,8 @@ module Text.Html.VkMess
   , indexHtmlStandalone
   , conversationHtml
   , conversationHtmlStandalone
-  , messagesHtml
+  , messagesWithConvHtml
+  , messagesWithConvHtmlStandalone
   , standalone
   , convPath
   ) where
@@ -134,20 +135,13 @@ messageHtml us s (Message {..}) = do
     H.div ! class_ "rawContainer" $
       spoiler "Raw JSON" $ prettyJsonHtml $ mJson
 
-conversationHtmlStandalone :: [(UserId, String)] -> UserId -> (Conversation, [Message]) -> Html
-conversationHtmlStandalone us s convs = standalone tit $ conversationHtml us s convs
-  where tit = "«" ++ convTitle (fst convs) ++ "» — " ++ fromJust (lookup s us)
+conversationHtmlStandalone :: [(UserId, String)] -> UserId -> Conversation -> [Message] -> Html
+conversationHtmlStandalone us s conv ms = standalone tit $ conversationHtml us s ms
+  where tit = "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
 
-conversationHtml :: [(UserId, String)] -> UserId -> (Conversation, [Message]) -> Html
-conversationHtml us s (conv, ms) = docTypeHtml $ do
-  H.head $ do
-    title $ toHtml
-          $ "«" ++ convTitle conv ++ "» — " ++ fromJust (lookup s us)
-    H.meta ! charset "UTF-8"
-    H.style $ preEscapedToHtml globalCSS
-  H.body ! class_ "dialogBody"
-    $ H.div ! class_ "dialogContainer"
-    $ mapM_ (messageHtml us s) $ reverse ms
+conversationHtml :: [(UserId, String)] -> UserId -> [Message] -> Html
+conversationHtml us s ms = H.div ! class_ "dialogContainer"
+                                 $ mapM_ (messageHtml us s) $ reverse ms
 
 convPath :: Conversation -> FilePath
 convPath (ConvUser i _ _) = "user-" ++ show i ++ ".html"
@@ -232,16 +226,23 @@ standalone title_ body_ = docTypeHtml $ do
     H.style $ preEscapedToHtml globalCSS
   H.body body_
 
-messagesGroup :: [(UserId, String)] -> UserId -> [Message] -> Html
-messagesGroup us self ms = H.div $ mapM_ (messageHtml us self) ms
+conversationContainer :: Html -> Html
+conversationContainer = H.div ! class_ "dialogContainer"
 
-messagesGroupWithConv :: [(UserId, String)] -> UserId -> Conversation -> [Message] -> Html
-messagesGroupWithConv us self conv ms = H.div ! class_ "convContainer" $ do
-  H.div ! class_ "groupCaption" $ groupCaptionHtml conv
-  messagesGroup us self ms
+groupCaptionContainer :: Html -> Html
+groupCaptionContainer = H.div ! class_ "groupCaption"
 
-messagesHtml :: [(UserId, String)] -> UserId -> [(Conversation, Message)] -> Html
-messagesHtml us self items = do
+messageGroupContainer :: Html -> Html
+messageGroupContainer = H.div ! class_ "convContainer"
+
+messagesWithConvHtmlStandalone :: [(UserId, String)] -> UserId -> [(Conversation, Message)] -> Html
+messagesWithConvHtmlStandalone us self items = standalone tit $ messagesWithConvHtml us self items
+  where tit = "All Messages — " ++ (fromJust $ lookup self us)
+
+messagesWithConvHtml :: [(UserId, String)] -> UserId -> [(Conversation, Message)] -> Html
+messagesWithConvHtml us self items = do
   let gs = map (fst . Prelude.head &&& map snd) $ groupBy ((==) `on` fst) items
-  H.div ! class_ "dialogContainer" $ do
-    forM_ gs $ \(conv, ms) -> messagesGroupWithConv us self conv ms
+  conversationContainer $
+    forM_ gs $ \(conv, ms) -> conversationContainer $ do
+      groupCaptionContainer $ groupCaptionHtml conv
+      messageGroupContainer $ mapM_ (messageHtml us self) ms
