@@ -23,6 +23,7 @@ import Data.Default (Default(..))
 
 import Web.VKHS
   ( runVK
+  , AppID(..)
   , defaultOptions
   , GenericOptions(..)
   , Verbosity(..)
@@ -69,7 +70,7 @@ optparser = execParser opts
 main :: IO ()
 main = do
   Options {..} <- optparser
-  let myOptions' = defaultOptions {o_max_request_rate_per_sec = 1.5} { o_verbosity = verb }
+  let myOptions' = defaultOptions {o_max_request_rate_per_sec = 1.5, o_verbosity = verb, l_appid = AppID "2685278" }
   let myOptions = case creds of
                     Left (email, pass) -> myOptions' {l_username = email, l_password = pass}
                     Right token -> myOptions' { l_access_token = token }
