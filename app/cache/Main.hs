@@ -3,10 +3,10 @@
 
 module Main where
 
-import Prelude hiding (readFile)
-
 import Data.Maybe (fromJust)
 import Data.List (genericLength)
+import Data.Foldable (toList)
+import Data.Set (difference, fromList)
 import Control.Monad (forM_, forM, replicateM)
 import Control.Arrow ((&&&))
 import System.FilePath ((</>), takeDirectory)
@@ -45,6 +45,7 @@ data Options = Options
   { outDir :: FilePath
   , inFile :: FilePath
   , jobs   :: Int
+  , append :: Bool
   }
 
 sample :: Parser Options
@@ -59,6 +60,10 @@ sample = do
              long "jobs"
           <> short 'j'
           <> help "The number of parallel download jobs"
+  append <- switch $
+            long "append"
+         <> short 'a'
+         <> help "Append more files to an existing cache"
   pure Options {..}
 
 optparser :: IO Options
@@ -104,16 +109,25 @@ withMVar m a = do
 main :: IO ()
 main = do
   Options {..} <- optparser
-  urls <- getSnapshotUrls <$> decode <$> readFile inFile
+  urls <- getSnapshotUrls <$> decode <$> Data.VkMess.readFile inFile
+  toDownload <- if append then do
+      present <- map (\[a, _] -> a) <$> map words <$> lines <$> Prelude.readFile (outDir </> "index.txt")
+      seq (length present) $ pure () -- To make sure the whole file is read and closed
+      pure $ toList $ fromList urls `difference` fromList present
+    else
+      pure urls
   let index = unlines $ flip map urls $ \u -> u ++ " " ++ getURIPath u
-  createDirectory outDir
-  Prelude.writeFile (outDir </> "index.txt") index
+  if append then do
+    appendFile (outDir </> "index.txt") index
+  else do
+    createDirectory outDir
+    Prelude.writeFile (outDir </> "index.txt") index
   sem <- MSem.new jobs
   ses <- newMVar =<< replicateM jobs newAPISession
   AP.displayConsoleRegions $ do
     pb <- AP.newProgressBar $ def
-       { AP.pgTotal = genericLength urls
+       { AP.pgTotal = genericLength toDownload
        , AP.pgFormat = "Caching files :percent [:bar] :current/:total (for :elapsed, :eta remaining)"
        }
-    as <- forM urls $ async . MSem.with sem . withMVar ses . processUrl pb outDir
+    as <- forM toDownload $ async . MSem.with sem . withMVar ses . processUrl pb outDir
     forM_ as wait
