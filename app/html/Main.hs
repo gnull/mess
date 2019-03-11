@@ -6,6 +6,7 @@ module Main where
 import Prelude hiding (writeFile)
 
 import Data.List (sortBy)
+import Data.Set (fromList)
 import Data.Ord (comparing)
 import Control.Monad (forM_, when)
 import Control.Monad.Writer (runWriter)
@@ -80,7 +81,7 @@ main = do
   (Snapshot ms self users chats, res) <- runWriter
     <$> replaceSnapshotUrls mm
     <$> decode <$> Data.VkMess.readFile inFile
-  when (not $ null res) $ putStrLn $ "warning: " ++ show (length res) ++ " urls weren't found in cache"
+  when (not $ null res) $ putStrLn $ "warning: " ++ show (length $ fromList res) ++ " urls weren't found in cache"
   writeFile "index.html" $ renderHtml $ indexHtmlStandalone users chats self ms
   writeFile "messages.html" $ renderHtml
                             $ messagesWithConvHtmlStandalone users self
