@@ -38,6 +38,8 @@ This project contains three tools:
  * `mess-html` — for producing an html website given *attachments* and *dump*
    obtained by the previous two utilities.
 
+![Diagram](https://user-images.githubusercontent.com/7102119/54392329-6a213a00-46b8-11e9-8c85-ac85a480ec1c.png)
+
 All three tools print help text if run with `--help` flag, as well as bash
 completion which can be fed into your shell by running a command like:
 
