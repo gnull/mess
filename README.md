@@ -8,6 +8,7 @@ without downloading attachments to your computer, in this case the website will
 contain references to attachment URLs at vk.com.
 
 Supported attachment types are:
+
   * Photos (maximum size only)
   * Stickers (fixed size only)
   * Links
